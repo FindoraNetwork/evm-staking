@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "./utils/utils.sol";
-import "./common/Power.sol";
+import "./Power.sol";
 import "./interfaces/IStaking.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
@@ -15,6 +15,7 @@ contract Staking is Ownable, IStaking, Utils {
     address public system; // System contract address
     address public powerAddress; // Power contract address
     uint256 public stakeMinimum;
+    uint256 public delegateMinimum;
     uint256 public blockInterval; //
 
     struct Validator {
@@ -49,11 +50,13 @@ contract Staking is Ownable, IStaking, Utils {
         address system_,
         address powerAddress_,
         uint256 stakeMinimum_,
+        uint256 delegateMinimum_,
         uint256 blockInterval_
     ) {
         system = system_;
         powerAddress = powerAddress_;
         stakeMinimum = stakeMinimum_;
+        delegateMinimum = delegateMinimum_;
         blockInterval = blockInterval_;
     }
 
@@ -102,7 +105,7 @@ contract Staking is Ownable, IStaking, Utils {
         require(v.staker != address(0), "invalid validator");
 
         // Check delegate amount
-        require(msg.value > 0, "amount must be greater than 0");
+        require(msg.value >=delegateMinimum, "amount is too less");
         uint256 amount = checkDecimal(msg.value, 12);
         require(msg.value == amount, "amount error, low 12 must be 0.");
         Power powerContract = Power(powerAddress);

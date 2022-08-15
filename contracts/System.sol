@@ -1,60 +1,52 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "./common/Power.sol";
+import "./Power.sol";
 import "./interfaces/Interfaces.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract System is Ownable {
+    // address of proxy contract
+    address public proxy_contract;
+
     // Staking contract address
     address public stakingAddress;
-
-    // Power contract address
-    address public powerAddress;
 
     // Reword contract address
     address public rewardAddress;
 
     // Validator power
-    mapping(address => uint256) powers;
+//    mapping(address => uint256) powers;
 
     // Validator public key
-    mapping(address => bytes) pubKeys;
+//    mapping(address => bytes) pubKeys;
 
-    constructor(
-        address powerAddress_,
-        address stakingAddress_,
-        address rewardAddress_
-    ) {
-        powerAddress = powerAddress_;
-        rewardAddress = rewardAddress_;
-        stakingAddress = stakingAddress_;
+    /**
+     * @dev constructor function, for init proxy_contract.
+     * @param _proxy_contract address of proxy contract.
+     */
+    constructor(address _proxy_contract) {
+        proxy_contract = _proxy_contract;
+    }
+
+    modifier onlyProxy() {
+        require(
+            msg.sender == proxy_contract,
+            "Only proxy can call this function"
+        );
+        _;
     }
 
     function SetConfig(
-        address powerAddress_,
         address stakingAddress_,
         address rewardAddress_
     ) public onlyOwner {
-        powerAddress = powerAddress_;
         rewardAddress = rewardAddress_;
         stakingAddress = stakingAddress_;
     }
 
-    // Increase power for validator
-    function addPower(address validator, uint256 power) public onlyOwner {
-        Power powerContract = Power(powerAddress);
-        powerContract.addPower(validator, power);
-    }
-
-    // Decrease power for validator
-    function descPower(address validator, uint256 power) public onlyOwner {
-        Power powerContract = Power(powerAddress);
-        powerContract.descPower(validator, power);
-    }
-
     // trigger events at end-block
-    function blockTrigger() public onlyOwner {
+    function blockTrigger() public onlyProxy {
         // Return unDelegate assets
         Staking staking = Staking(stakingAddress);
         staking.trigger();

@@ -2,8 +2,11 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
-contract Power is Ownable {
+contract Power is Ownable,AccessControlEnumerable {
+    bytes32 public constant PlAT_FORM_ROLE = keccak256("PlAT_FORM");
+
     address public system; // System contract address
     address public stakingAddress; // Staking contract address
 
@@ -25,32 +28,22 @@ contract Power is Ownable {
         stakingAddress = stakingAddress_;
     }
 
-    modifier onlyPlatform() {
-        require(
-            msg.sender == system || msg.sender == stakingAddress,
-            "deny of service"
-        );
-        _;
-    }
-
     // get validator power
-    function getPower(address validator)
-        public
-        view
-        onlyPlatform
-        returns (uint256)
-    {
+    function getPower(address validator) public view returns (uint256) {
+        require(hasRole(PlAT_FORM_ROLE, msg.sender),"deny of service");
         return validators[validator].power;
     }
 
     // Increase power for validator
-    function addPower(address validator, uint256 power) public onlyPlatform {
+    function addPower(address validator, uint256 power) public {
+        require(hasRole(PlAT_FORM_ROLE, msg.sender),"deny of service");
         validators[validator].power += power;
         powerTotal += power;
     }
 
     // Decrease power for validator
-    function descPower(address validator, uint256 power) public onlyPlatform {
+    function descPower(address validator, uint256 power) public {
+        require(hasRole(PlAT_FORM_ROLE, msg.sender),"deny of service");
         validators[validator].power -= power;
         powerTotal -= power;
     }

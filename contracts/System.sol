@@ -16,10 +16,10 @@ contract System is Ownable {
     address public rewardAddress;
 
     // Validator power
-//    mapping(address => uint256) powers;
+    //    mapping(address => uint256) powers;
 
     // Validator public key
-//    mapping(address => bytes) pubKeys;
+    //    mapping(address => bytes) pubKeys;
 
     /**
      * @dev constructor function, for init proxy_contract.
@@ -37,10 +37,10 @@ contract System is Ownable {
         _;
     }
 
-    function SetConfig(
-        address stakingAddress_,
-        address rewardAddress_
-    ) public onlyOwner {
+    function SetConfig(address stakingAddress_, address rewardAddress_)
+        public
+        onlyOwner
+    {
         rewardAddress = rewardAddress_;
         stakingAddress = stakingAddress_;
     }

@@ -21,10 +21,7 @@ contract SystemProxy is Ownable, Proxy {
      * @dev Set system address, this function can only be called by owner.
      * @param systemAddress_ contract address of system
      */
-    function adminSetSystemAddress(address systemAddress_)
-    public
-    onlyOwner
-    {
+    function adminSetSystemAddress(address systemAddress_) public onlyOwner {
         systemAddress = systemAddress_;
     }
 

@@ -5,10 +5,12 @@ import "./utils/utils.sol";
 import "./Power.sol";
 import "./interfaces/IStaking.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Staking is Ownable, IStaking, Utils {
+contract Staking is Initializable, OwnableUpgradeable, IStaking, Utils {
     using Address for address;
     using EnumerableMap for EnumerableMap.UintToAddressMap;
 
@@ -46,18 +48,20 @@ contract Staking is Ownable, IStaking, Utils {
     event Delegation(address validator, address receiver, uint256 amount);
     event UnDelegation(address validator, address receiver, uint256 amount);
 
-    constructor(
+    function initialize(
         address system_,
         address powerAddress_,
         uint256 stakeMinimum_,
         uint256 delegateMinimum_,
         uint256 blockInterval_
-    ) {
+    ) public initializer {
         system = system_;
         powerAddress = powerAddress_;
         stakeMinimum = stakeMinimum_;
         delegateMinimum = delegateMinimum_;
         blockInterval = blockInterval_;
+        __Context_init_unchained();
+        __Ownable_init_unchained();
     }
 
     modifier onlySystem() {
@@ -105,7 +109,7 @@ contract Staking is Ownable, IStaking, Utils {
         require(v.staker != address(0), "invalid validator");
 
         // Check delegate amount
-        require(msg.value >=delegateMinimum, "amount is too less");
+        require(msg.value >= delegateMinimum, "amount is too less");
         uint256 amount = checkDecimal(msg.value, 12);
         require(msg.value == amount, "amount error, low 12 must be 0.");
         Power powerContract = Power(powerAddress);

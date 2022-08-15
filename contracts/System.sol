@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
+import "./common/Power.sol";
 import "./interfaces/Interfaces.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./common/Power.sol";
 
 contract System is Ownable {
     // Staking contract address

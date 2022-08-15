@@ -2,17 +2,20 @@
 pragma solidity ^0.8.9;
 
 import "./utils/utils.sol";
+import "./common/Power.sol";
 import "./interfaces/IStaking.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./common/Power.sol";
 
 contract Staking is Ownable, IStaking, Utils {
     using Address for address;
+    using EnumerableMap for EnumerableMap.UintToAddressMap;
 
     address public system; // System contract address
     address public powerAddress; // Power contract address
     uint256 public stakeMinimum;
+    uint256 public blockInterval; //
 
     struct Validator {
         bytes public_key;
@@ -24,7 +27,7 @@ contract Staking is Ownable, IStaking, Utils {
     // (validator address => Validator)
     mapping(address => Validator) public validators;
 
-    // Enumable.
+    EnumerableMap.UintToAddressMap private myMap;
 
     // (delegator => (validator => amount)).
     mapping(address => mapping(address => uint256)) public delegators;
@@ -45,11 +48,13 @@ contract Staking is Ownable, IStaking, Utils {
     constructor(
         address system_,
         address powerAddress_,
-        uint256 stakeMinimum_
+        uint256 stakeMinimum_,
+        uint256 blockInterval_
     ) {
         system = system_;
         powerAddress = powerAddress_;
         stakeMinimum = stakeMinimum_;
+        blockInterval = blockInterval_;
     }
 
     modifier onlySystem() {
@@ -101,11 +106,11 @@ contract Staking is Ownable, IStaking, Utils {
         uint256 amount = checkDecimal(msg.value, 12);
         require(msg.value == amount, "amount error, low 12 must be 0.");
         Power powerContract = Power(powerAddress);
+        uint256 power = amount / (10**12);
         require(power < powerContract.powerTotal() / 5, "amount is too large");
 
         delegators[msg.sender][validator] += amount;
 
-        uint256 power = amount / (10**12);
         powerContract.addPower(validator, power);
 
         emit Delegation(validator, address(this), amount);
@@ -145,8 +150,8 @@ contract Staking is Ownable, IStaking, Utils {
     // Return unDelegate assets
     function trigger() public onlySystem {
         uint256 blockNo = block.number;
-        // 86400/15*21
-        uint256 heightDifference = 120960;
+        // 86400/15*21，blockInterval
+        uint256 heightDifference = (86400 / blockInterval) * 21;
         for (uint256 i; i < unDelegationRecords.length; i++) {
             if ((blockNo - unDelegationRecords[i].height) >= heightDifference) {
                 Address.sendValue(

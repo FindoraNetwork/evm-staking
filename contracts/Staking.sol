@@ -15,7 +15,6 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     using EnumerableMap for EnumerableMap.UintToAddressMap;
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
-    bytes32 public constant OWNER_ROLE = keccak256("OWNER");
 
     address public system; // System contract address
     address public powerAddress; // Power contract address
@@ -76,7 +75,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         delegateMinimum = delegateMinimum_;
         powerProportionMaximum = powerProportionMaximum_;
         blockInterval = blockInterval_;
-        grantRole(OWNER_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         heightDifference = (86400 / blockInterval) * 21;
         //        __Context_init_unchained();
         //        __Ownable_init_unchained();
@@ -84,44 +83,45 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
     function adminSetSystemAddress(address system_)
         public
-        onlyRole(OWNER_ROLE)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         system = system_;
     }
 
     function adminSetPowerAddress(address powerAddress_)
         public
-        onlyRole(OWNER_ROLE)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         powerAddress = powerAddress_;
     }
 
     function adminSetStakeMinimum(uint256 stakeMinimum_)
         public
-        onlyRole(OWNER_ROLE)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         stakeMinimum = stakeMinimum_;
     }
 
     function adminSetDelegateMinimum(uint256 delegateMinimum_)
         public
-        onlyRole(OWNER_ROLE)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         delegateMinimum = delegateMinimum_;
     }
 
     function adminSetPowerProportionMaximum(uint256 powerProportionMaximum_)
         public
-        onlyRole(OWNER_ROLE)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         powerProportionMaximum = powerProportionMaximum_;
     }
 
     function adminSetBlockInterval(uint256 blockInterval_)
         public
-        onlyRole(OWNER_ROLE)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         blockInterval = blockInterval_;
+        heightDifference = (86400 / blockInterval) * 21;
     }
 
     // Stake
@@ -234,6 +234,10 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         string calldata memo,
         uint256 rate
     ) public {
+        // Check whether the validator is a stacker
+        Validator storage v = validators[validator];
+        require(v.staker != address(0), "invalid validator");
+
         validators[validator].memo = memo;
         validators[validator].rate = rate;
     }

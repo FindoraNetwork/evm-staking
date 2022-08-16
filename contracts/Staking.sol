@@ -21,6 +21,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     address public powerAddress; // Power contract address
     uint256 public stakeMinimum;
     uint256 public delegateMinimum;
+    uint256 public powerProportionMaximum; // default 5
     uint256 public blockInterval; //
 
     struct Validator {
@@ -65,12 +66,14 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         address powerAddress_,
         uint256 stakeMinimum_,
         uint256 delegateMinimum_,
+        uint256 powerProportionMaximum_,
         uint256 blockInterval_
     ) public initializer {
         system = system_;
         powerAddress = powerAddress_;
         stakeMinimum = stakeMinimum_;
         delegateMinimum = delegateMinimum_;
+        powerProportionMaximum = powerProportionMaximum_;
         blockInterval = blockInterval_;
         grantRole(OWNER_ROLE, msg.sender);
         //        __Context_init_unchained();
@@ -89,6 +92,34 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         onlyRole(OWNER_ROLE)
     {
         powerAddress = powerAddress_;
+    }
+
+    function adminSetStakeMinimum(uint256 stakeMinimum_)
+        public
+        onlyRole(OWNER_ROLE)
+    {
+        stakeMinimum = stakeMinimum_;
+    }
+
+    function adminSetDelegateMinimum(uint256 delegateMinimum_)
+        public
+        onlyRole(OWNER_ROLE)
+    {
+        delegateMinimum = delegateMinimum_;
+    }
+
+    function adminSetPowerProportionMaximum(uint256 powerProportionMaximum_)
+        public
+        onlyRole(OWNER_ROLE)
+    {
+        powerProportionMaximum = powerProportionMaximum_;
+    }
+
+    function adminSetBlockInterval(uint256 blockInterval_)
+        public
+        onlyRole(OWNER_ROLE)
+    {
+        blockInterval = blockInterval_;
     }
 
     // Stake
@@ -132,7 +163,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
         Power powerContract = Power(powerAddress);
         require(
-            power < (powerContract.powerTotal() + power) / 5,
+            power <
+                (powerContract.powerTotal() + power) / powerProportionMaximum,
             "amount is too large"
         );
 

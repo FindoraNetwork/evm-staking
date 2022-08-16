@@ -5,14 +5,14 @@ import "./Power.sol";
 import "./utils/utils.sol";
 import "./interfaces/IStaking.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     using Address for address;
-    using EnumerableMap for EnumerableMap.UintToAddressMap;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
 
@@ -36,8 +36,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
      */
     mapping(address => Validator) public validators;
 
-    // 用set
-    EnumerableMap.UintToAddressMap private myMap;
+    EnumerableSet.AddressSet private allValidators;
 
     // (delegator => (validator => amount)).
     mapping(address => mapping(address => uint256)) public delegators;
@@ -75,10 +74,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         delegateMinimum = delegateMinimum_;
         powerProportionMaximum = powerProportionMaximum_;
         blockInterval = blockInterval_;
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         heightDifference = (86400 / blockInterval) * 21;
-        //        __Context_init_unchained();
-        //        __Ownable_init_unchained();
     }
 
     function adminSetSystemAddress(address system_)
@@ -148,6 +144,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.addPower(validator, power);
 
+        allValidators.add(validator);
+
         emit Stake(public_key, msg.sender, msg.value, memo, rate);
     }
 
@@ -198,6 +196,10 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.descPower(validator, power);
 
+        if (powerContract.getPower(validator) == 0) {
+            allValidators.remove(validator);
+        }
+
         // Push record
         unDelegationRecords.push(
             UnDelegationRecord(
@@ -243,5 +245,9 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
         validators[validator].memo = memo;
         validators[validator].rate = rate;
+    }
+
+    function getAllValidators() public view returns (address[] memory) {
+        return allValidators.values();
     }
 }

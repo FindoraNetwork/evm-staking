@@ -2,10 +2,14 @@
 pragma solidity ^0.8.9;
 
 import "./Power.sol";
-import "./interfaces/Interfaces.sol";
+import "./Staking.sol";
+import "./interfaces/ISystem.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract System is Ownable {
+contract System is Ownable, ISystem {
+    address private __self = address(this);
+
     // address of proxy contract
     address public proxy_contract;
 
@@ -15,11 +19,7 @@ contract System is Ownable {
     // Reword contract address
     address public rewardAddress;
 
-    // Validator power
-    //    mapping(address => uint256) powers;
-
-    // Validator public key
-    //    mapping(address => bytes) pubKeys;
+    address public powerAddress;
 
     /**
      * @dev constructor function, for init proxy_contract.
@@ -53,10 +53,54 @@ contract System is Ownable {
         stakingAddress = stakingAddress_;
     }
 
-    // trigger events at end-block
-    function blockTrigger() public onlyProxy {
-        // Return unDelegate assets
+    function adminSetPowerAddress(
+        address stakingAddress_,
+        address rewardAddress_
+    ) public onlyOwner {
+        rewardAddress = rewardAddress_;
+        stakingAddress = stakingAddress_;
+    }
+
+    function getValidatorInfoList()
+        external
+        view
+        override
+        returns (ValidatorInfo[] memory)
+    {
+        Staking sc = Staking(stakingAddress);
+
+        address[] memory addrs = sc.getAllValidators();
+
+        Power pc = Power(powerAddress);
+
+        ValidatorInfo[] memory vs = new ValidatorInfo[](addrs.length);
+
+        for (uint256 i = 0; i != addrs.length; i++) {
+            address validator = addrs[i];
+            (bytes memory public_key, , , ) = sc.validators(validator);
+            uint256 power = pc.getPower(validator);
+
+            ValidatorInfo memory v = ValidatorInfo(
+                public_key,
+                validator,
+                power
+            );
+
+            vs[i] = v;
+        }
+
+        return vs;
+    }
+
+    function blockTrigger(
+        address proposer,
+        address[] memory signed,
+        address[] memory byztine,
+        ByztineBehavior[] memory behavior
+    ) external override {
         Staking staking = Staking(stakingAddress);
         staking.trigger();
     }
+
+    function getClaimOps() external override returns (ClaimOps[] memory) {}
 }

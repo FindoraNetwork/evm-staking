@@ -13,3 +13,15 @@ hardhat.config.js
 package.json
 package-lock.json
 docs/note.md
+
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+
+#Hardhat files
+cache
+artifacts
+

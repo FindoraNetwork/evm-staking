@@ -11,7 +11,8 @@ interface ISystem {
     function getValidatorInfoList() external returns (ValidatorInfo[] memory);
 
     enum ByztineBehavior {
-        DoubleVote,
+        DuplicateVote,
+        LightClientAttack,
         Unknown
     }
 

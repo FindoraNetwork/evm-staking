@@ -13,12 +13,8 @@ contract Power is AccessControlEnumerable {
 
     uint256 public powerTotal;
 
-    struct Validator {
-        uint256 power;
-        address staker;
-    }
     // (validator address => Validator)
-    mapping(address => Validator) public validators;
+    mapping(address => uint256) public validators;
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -40,7 +36,7 @@ contract Power is AccessControlEnumerable {
 
     // get validator power
     function getPower(address validator) public view returns (uint256) {
-        return validators[validator].power;
+        return validators[validator];
     }
 
     // Increase power for validator
@@ -48,7 +44,7 @@ contract Power is AccessControlEnumerable {
         public
         onlyRole(ADD_POWER_ROLE)
     {
-        validators[validator].power += power;
+        validators[validator] += power;
         powerTotal += power;
     }
 
@@ -57,7 +53,7 @@ contract Power is AccessControlEnumerable {
         public
         onlyRole(DESC_POWER_ROLE)
     {
-        validators[validator].power -= power;
+        validators[validator] -= power;
         powerTotal -= power;
     }
 }

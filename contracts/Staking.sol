@@ -105,7 +105,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         require(msg.value >= stakeMinimum, "amount too less");
         uint256 amount;
         uint256 power;
-        (amount, power) = checkAmount(msg.value, 12);
+        (amount, power) = convertAmount(msg.value, 12);
 
         Validator storage v = validators[validator];
         v.public_key = public_key;
@@ -128,7 +128,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         require(msg.value >= delegateMinimum, "amount is too less");
         uint256 amount;
         uint256 power;
-        (amount, power) = checkAmount(msg.value, 12);
+        (amount, power) = convertAmount(msg.value, 12);
 
         Power powerContract = Power(powerAddress);
         require(power < powerContract.powerTotal() / 5, "amount is too large");
@@ -150,7 +150,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         require(amount > 0, "amount must be greater than 0");
         uint256 amount_;
         uint256 power;
-        (amount_, power) = checkAmount(amount, 12);
+        (amount_, power) = convertAmount(amount, 12);
         require(
             delegators[msg.sender][validator] >= amount,
             "amount is too large"

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.9;
 
 contract Utils {
-    // Check amount
-    function checkAmount(uint256 amount, uint8 decimal)
+    // Convert amount
+    function convertAmount(uint256 amount, uint8 decimal)
         public
         pure
         returns (uint256, uint256)

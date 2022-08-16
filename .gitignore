@@ -9,9 +9,6 @@ typechain-types
 #Hardhat files
 cache
 artifacts
-hardhat.config.js
-package.json
-package-lock.json
 docs/note.md
 
 node_modules

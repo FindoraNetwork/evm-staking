@@ -5,14 +5,17 @@ import "./Power.sol";
 import "./utils/utils.sol";
 import "./interfaces/IStaking.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Staking is Initializable, OwnableUpgradeable, IStaking, Utils {
+contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     using Address for address;
     using EnumerableMap for EnumerableMap.UintToAddressMap;
+
+    bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
+    bytes32 public constant OWNER_ROLE = keccak256("OWNER");
 
     address public system; // System contract address
     address public powerAddress; // Power contract address
@@ -47,7 +50,13 @@ contract Staking is Initializable, OwnableUpgradeable, IStaking, Utils {
 
     UnDelegationRecord[] public unDelegationRecords;
 
-    event Stake(address validator, address staker, uint256 amount); // memo之类信息加进去
+    event Stake(
+        bytes public_key,
+        address staker,
+        uint256 amount,
+        string memo,
+        uint256 rate
+    );
     event Delegation(address validator, address receiver, uint256 amount);
     event UnDelegation(address validator, address receiver, uint256 amount);
 
@@ -63,20 +72,22 @@ contract Staking is Initializable, OwnableUpgradeable, IStaking, Utils {
         stakeMinimum = stakeMinimum_;
         delegateMinimum = delegateMinimum_;
         blockInterval = blockInterval_;
-        __Context_init_unchained();
-        __Ownable_init_unchained();
+        grantRole(OWNER_ROLE, msg.sender);
+        //        __Context_init_unchained();
+        //        __Ownable_init_unchained();
     }
 
-    modifier onlySystem() {
-        require(msg.sender == system, "only called by system");
-        _;
-    }
-
-    function adminSetSystemAddress(address system_) public onlyOwner {
+    function adminSetSystemAddress(address system_)
+        public
+        onlyRole(OWNER_ROLE)
+    {
         system = system_;
     }
 
-    function adminSetPowerAddress(address powerAddress_) public onlyOwner {
+    function adminSetPowerAddress(address powerAddress_)
+        public
+        onlyRole(OWNER_ROLE)
+    {
         powerAddress = powerAddress_;
     }
 
@@ -104,7 +115,7 @@ contract Staking is Initializable, OwnableUpgradeable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.addPower(validator, power);
 
-        emit Stake(validator, msg.sender, msg.value);
+        emit Stake(public_key, msg.sender, msg.value, memo, rate);
     }
 
     // Delegate assets
@@ -162,7 +173,7 @@ contract Staking is Initializable, OwnableUpgradeable, IStaking, Utils {
     }
 
     // Return unDelegate assets
-    function trigger() public onlySystem {
+    function trigger() public onlyRole(SYSTEM_ROLE) {
         uint256 blockNo = block.number;
         // 86400/15*21，blockInterval
         uint256 heightDifference = (86400 / blockInterval) * 21;

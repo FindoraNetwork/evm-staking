@@ -23,6 +23,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     uint256 public delegateMinimum;
     uint256 public powerProportionMaximum; // default 5
     uint256 public blockInterval; //
+    uint256 public heightDifference; // number of blocks to wait,21days
 
     struct Validator {
         bytes public_key;
@@ -76,6 +77,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         powerProportionMaximum = powerProportionMaximum_;
         blockInterval = blockInterval_;
         grantRole(OWNER_ROLE, msg.sender);
+        heightDifference = (86400 / blockInterval) * 21;
         //        __Context_init_unchained();
         //        __Ownable_init_unchained();
     }
@@ -210,8 +212,6 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     // Return unDelegate assets
     function trigger() public onlyRole(SYSTEM_ROLE) {
         uint256 blockNo = block.number;
-        // 86400/15*21，blockInterval
-        uint256 heightDifference = (86400 / blockInterval) * 21;
         for (uint256 i; i < unDelegationRecords.length; i++) {
             if ((blockNo - unDelegationRecords[i].height) >= heightDifference) {
                 Address.sendValue(

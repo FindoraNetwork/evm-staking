@@ -131,7 +131,10 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         (amount, power) = convertAmount(msg.value, 12);
 
         Power powerContract = Power(powerAddress);
-        require(power < powerContract.powerTotal() / 5, "amount is too large");
+        require(
+            power < (powerContract.powerTotal() + power) / 5,
+            "amount is too large"
+        );
 
         delegators[msg.sender][validator] += amount;
 

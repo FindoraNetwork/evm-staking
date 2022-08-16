@@ -236,7 +236,10 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     ) public {
         // Check whether the validator is a stacker
         Validator storage v = validators[validator];
-        require(v.staker != address(0), "invalid validator");
+        require(
+            (v.staker != address(0)) && (v.staker == msg.sender),
+            "invalid staker"
+        );
 
         validators[validator].memo = memo;
         validators[validator].rate = rate;

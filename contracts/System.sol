@@ -37,10 +37,18 @@ contract System is Ownable {
         _;
     }
 
-    function SetConfig(address stakingAddress_, address rewardAddress_)
-        public
-        onlyOwner
-    {
+    function adminSetStakingAddress(
+        address stakingAddress_,
+        address rewardAddress_
+    ) public onlyOwner {
+        rewardAddress = rewardAddress_;
+        stakingAddress = stakingAddress_;
+    }
+
+    function adminSetRewardAddress(
+        address stakingAddress_,
+        address rewardAddress_
+    ) public onlyOwner {
         rewardAddress = rewardAddress_;
         stakingAddress = stakingAddress_;
     }

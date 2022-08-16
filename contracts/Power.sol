@@ -5,7 +5,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
 contract Power is Ownable, AccessControlEnumerable {
-    bytes32 public constant PlAT_FORM_ROLE = keccak256("PlAT_FORM");
+    bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
+    bytes32 public constant STAKING_ROLE = keccak256("STAKING");
 
     address public system; // System contract address
     address public stakingAddress; // Staking contract address
@@ -13,7 +14,6 @@ contract Power is Ownable, AccessControlEnumerable {
     uint256 public powerTotal;
 
     struct Validator {
-        bytes public_key;
         uint256 power;
         address staker;
     }
@@ -29,21 +29,32 @@ contract Power is Ownable, AccessControlEnumerable {
     }
 
     // get validator power
-    function getPower(address validator) public view returns (uint256) {
-        require(hasRole(PlAT_FORM_ROLE, msg.sender), "deny of service");
+    function getPower(address validator)
+        public
+        view
+        onlyRole(SYSTEM_ROLE)
+        onlyRole(STAKING_ROLE)
+        returns (uint256)
+    {
         return validators[validator].power;
     }
 
     // Increase power for validator
-    function addPower(address validator, uint256 power) public {
-        require(hasRole(PlAT_FORM_ROLE, msg.sender), "deny of service");
+    function addPower(address validator, uint256 power)
+        public
+        onlyRole(SYSTEM_ROLE)
+        onlyRole(STAKING_ROLE)
+    {
         validators[validator].power += power;
         powerTotal += power;
     }
 
     // Decrease power for validator
-    function descPower(address validator, uint256 power) public {
-        require(hasRole(PlAT_FORM_ROLE, msg.sender), "deny of service");
+    function descPower(address validator, uint256 power)
+        public
+        onlyRole(SYSTEM_ROLE)
+        onlyRole(STAKING_ROLE)
+    {
         validators[validator].power -= power;
         powerTotal -= power;
     }

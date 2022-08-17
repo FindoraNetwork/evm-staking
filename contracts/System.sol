@@ -80,9 +80,6 @@ contract System is Ownable, ISystem {
         }
 
         for (uint256 i = 0; i != addrs.length; i++) {
-            if (i >= validatorSetMaximum) {
-                break;
-            }
             address validator = addrs[i];
             (bytes memory public_key, , , ) = sc.validators(validator);
             uint256 power = pc.getPower(validator);

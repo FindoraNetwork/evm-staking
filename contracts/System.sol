@@ -114,7 +114,6 @@ contract System is Ownable, ISystem {
             for (uint256 j = 0; j < validators.length - 1 - i; j++) {
                 if (validators[j].power < validators[j + 1].power) {
                     ValidatorInfo memory temp = validators[j];
-                    //                    temp = validatorsTemp[j];
                     validators[j] = validators[j + 1];
                     validators[j + 1] = temp;
                 }

@@ -108,24 +108,6 @@ contract System is Ownable, ISystem {
         return vsRes;
     }
 
-    function ascSort(ValidatorInfo[] memory validators)
-        internal
-        pure
-        returns (ValidatorInfo[] memory)
-    {
-        for (uint256 i = 0; i < validators.length - 1; i++) {
-            for (uint256 j = 0; j < validators.length - 1 - i; j++) {
-                if (validators[j].power > validators[j + 1].power) {
-                    ValidatorInfo memory temp = validators[j];
-                    //                    temp = validatorsTemp[j];
-                    validators[j] = validators[j + 1];
-                    validators[j + 1] = temp;
-                }
-            }
-        }
-        return validators;
-    }
-
     function descSort(ValidatorInfo[] memory validators)
         internal
         pure

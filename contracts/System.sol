@@ -21,6 +21,9 @@ contract System is Ownable, ISystem {
 
     address public powerAddress;
 
+    // Validator-info set Maximum length
+    uint256 public validatorSetMaximum;
+
     /**
      * @dev constructor function, for init proxy_contract.
      * @param _proxy_contract address of proxy contract.
@@ -37,28 +40,23 @@ contract System is Ownable, ISystem {
         _;
     }
 
-    function adminSetStakingAddress(
-        address stakingAddress_,
-        address rewardAddress_
-    ) public onlyOwner {
-        rewardAddress = rewardAddress_;
+    function adminSetStakingAddress(address stakingAddress_) public onlyOwner {
         stakingAddress = stakingAddress_;
     }
 
-    function adminSetRewardAddress(
-        address stakingAddress_,
-        address rewardAddress_
-    ) public onlyOwner {
+    function adminSetRewardAddress(address rewardAddress_) public onlyOwner {
         rewardAddress = rewardAddress_;
-        stakingAddress = stakingAddress_;
     }
 
-    function adminSetPowerAddress(
-        address stakingAddress_,
-        address rewardAddress_
-    ) public onlyOwner {
-        rewardAddress = rewardAddress_;
-        stakingAddress = stakingAddress_;
+    function adminSetPowerAddress(address powerAddress_) public onlyOwner {
+        powerAddress = powerAddress_;
+    }
+
+    function adminSetValidatorSetMaximum(uint256 validatorSetMaximum_)
+        public
+        onlyOwner
+    {
+        validatorSetMaximum = validatorSetMaximum_;
     }
 
     function getValidatorInfoList()
@@ -74,8 +72,17 @@ contract System is Ownable, ISystem {
         Power pc = Power(powerAddress);
 
         ValidatorInfo[] memory vs = new ValidatorInfo[](addrs.length);
+        ValidatorInfo[] memory vsRes;
+        if (addrs.length > validatorSetMaximum) {
+            vsRes = new ValidatorInfo[](validatorSetMaximum);
+        } else {
+            vsRes = new ValidatorInfo[](addrs.length);
+        }
 
         for (uint256 i = 0; i != addrs.length; i++) {
+            if (i >= validatorSetMaximum) {
+                break;
+            }
             address validator = addrs[i];
             (bytes memory public_key, , , ) = sc.validators(validator);
             uint256 power = pc.getPower(validator);
@@ -89,7 +96,52 @@ contract System is Ownable, ISystem {
             vs[i] = v;
         }
 
-        return vs;
+        ValidatorInfo[] memory vsDesc = descSort(vs);
+
+        for (uint256 i = 0; i != vsDesc.length; i++) {
+            if (i >= validatorSetMaximum) {
+                break;
+            }
+            vsRes[i] = vsDesc[i];
+        }
+
+        return vsRes;
+    }
+
+    function ascSort(ValidatorInfo[] memory validators)
+        internal
+        pure
+        returns (ValidatorInfo[] memory)
+    {
+        for (uint256 i = 0; i < validators.length - 1; i++) {
+            for (uint256 j = 0; j < validators.length - 1 - i; j++) {
+                if (validators[j].power > validators[j + 1].power) {
+                    ValidatorInfo memory temp = validators[j];
+                    //                    temp = validatorsTemp[j];
+                    validators[j] = validators[j + 1];
+                    validators[j + 1] = temp;
+                }
+            }
+        }
+        return validators;
+    }
+
+    function descSort(ValidatorInfo[] memory validators)
+        internal
+        pure
+        returns (ValidatorInfo[] memory)
+    {
+        for (uint256 i = 0; i < validators.length - 1; i++) {
+            for (uint256 j = 0; j < validators.length - 1 - i; j++) {
+                if (validators[j].power < validators[j + 1].power) {
+                    ValidatorInfo memory temp = validators[j];
+                    //                    temp = validatorsTemp[j];
+                    validators[j] = validators[j + 1];
+                    validators[j + 1] = temp;
+                }
+            }
+        }
+        return validators;
     }
 
     function blockTrigger(

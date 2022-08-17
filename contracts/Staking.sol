@@ -75,6 +75,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         powerProportionMaximum = powerProportionMaximum_;
         blockInterval = blockInterval_;
         heightDifference = (86400 / blockInterval) * 21;
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function adminSetSystemAddress(address system_)
@@ -144,6 +145,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.addPower(validator, power);
 
+        delegators[msg.sender][msg.sender] += amount;
+
         allValidators.add(validator);
 
         emit Stake(public_key, msg.sender, msg.value, memo, rate);
@@ -183,9 +186,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
         // Check unDelegate amount
         require(amount > 0, "amount must be greater than 0");
-        uint256 amount_;
         uint256 power;
-        (amount_, power) = convertAmount(amount, 12);
+        (, power) = convertAmount(amount, 12);
         require(
             delegators[msg.sender][validator] >= amount,
             "amount is too large"
@@ -198,6 +200,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
         if (powerContract.getPower(validator) == 0) {
             allValidators.remove(validator);
+            delete validators[validator];
         }
 
         // Push record

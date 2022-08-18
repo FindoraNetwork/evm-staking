@@ -38,6 +38,9 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
     EnumerableSet.AddressSet private allValidators;
 
+    // (validator => delegator address set).
+    mapping(address => EnumerableSet.AddressSet) private delegatorsOfValidators;
+
     // (delegator => (validator => amount)).
     mapping(address => mapping(address => uint256)) public delegators;
 
@@ -175,6 +178,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
         powerContract.addPower(validator, power);
 
+        delegatorsOfValidators[validator].add(msg.sender);
+
         emit Delegation(validator, address(this), amount);
     }
 
@@ -198,9 +203,14 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.descPower(validator, power);
 
+        if (delegators[msg.sender][validator] == 0) {
+            delegatorsOfValidators[validator].remove(msg.sender);
+        }
+
         if (powerContract.getPower(validator) == 0) {
             allValidators.remove(validator);
             delete validators[validator];
+            delete delegatorsOfValidators[validator];
         }
 
         // Push record
@@ -254,7 +264,35 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return allValidators.values();
     }
 
+    function getDelegators(address validator)
+        public
+        view
+        returns (address[] memory)
+    {
+        return delegatorsOfValidators[validator].values();
+    }
+
     function hasValidators(address validator) public view returns (bool) {
         return allValidators.contains(validator);
+    }
+
+    function getDelegateAmount(address validator, address delegator)
+        public
+        view
+        returns (uint256)
+    {
+        return delegators[validator][delegator];
+    }
+
+    function descDelegateAmount(
+        address validator,
+        address delegator,
+        uint256 amount
+    ) public {
+        require(
+            delegators[validator][delegator] >= amount,
+            "insufficient amount"
+        );
+        delegators[validator][delegator] -= amount;
     }
 }

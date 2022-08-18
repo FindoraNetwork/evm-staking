@@ -52,6 +52,7 @@ contract Power is AccessControlEnumerable {
         public
         onlyRole(DESC_POWER_ROLE)
     {
+        require(validators[validator] >= power, "insufficient power");
         validators[validator] -= power;
         powerTotal -= power;
     }

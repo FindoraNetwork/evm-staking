@@ -253,4 +253,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     function getAllValidators() public view returns (address[] memory) {
         return allValidators.values();
     }
+
+    function hasValidators(address validator) public view returns (bool) {
+        return allValidators.contains(validator);
+    }
 }

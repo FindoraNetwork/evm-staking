@@ -3,8 +3,8 @@ pragma solidity ^0.8.9;
 
 import "./Power.sol";
 import "./Staking.sol";
+import "./Reward.sol";
 import "./interfaces/ISystem.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract System is Ownable, ISystem {
@@ -125,12 +125,26 @@ contract System is Ownable, ISystem {
     function blockTrigger(
         address proposer,
         address[] memory signed,
+        uint256 circulationAmount,
         address[] memory byztine,
         ByztineBehavior[] memory behavior
     ) external override {
         Staking staking = Staking(stakingAddress);
         staking.trigger();
+        Reward reward = Reward(rewardAddress);
+        reward.reward(proposer, signed, circulationAmount);
+        reward.punish(byztine, behavior);
     }
 
-    function getClaimOps() external override returns (ClaimOps[] memory) {}
+    function getClaimOps() external view override returns (ClaimOps[] memory) {
+        ClaimOps[] memory claimOps;
+        uint256 claimAmount;
+        Reward reward = Reward(rewardAddress);
+        address[] memory claimAccounts = reward.getClaimAccount();
+        for (uint256 i = 0; i < claimAccounts.length; i++) {
+            claimAmount = claimAmount = reward.getClaimAmount(claimAccounts[i]);
+            claimOps[i] = ClaimOps(claimAccounts[i], claimAmount);
+        }
+        return claimOps;
+    }
 }

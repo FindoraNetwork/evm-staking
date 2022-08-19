@@ -16,6 +16,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
 
+    uint256 public delegateTotal;
     address public system; // System contract address
     address public powerAddress; // Power contract address
     uint256 public stakeMinimum;
@@ -149,6 +150,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         powerContract.addPower(validator, power);
 
         delegators[msg.sender][msg.sender] += amount;
+        delegateTotal += amount;
 
         allValidators.add(validator);
 
@@ -175,6 +177,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         );
 
         delegators[msg.sender][validator] += amount;
+        delegateTotal += amount;
 
         powerContract.addPower(validator, power);
 
@@ -199,6 +202,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         );
 
         delegators[msg.sender][validator] -= amount;
+        delegateTotal -= amount;
 
         Power powerContract = Power(powerAddress);
         powerContract.descPower(validator, power);
@@ -272,7 +276,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return delegatorsOfValidators[validator].values();
     }
 
-    function hasValidators(address validator) public view returns (bool) {
+    function isStaker(address validator) public view returns (bool) {
         return allValidators.contains(validator);
     }
 
@@ -284,7 +288,12 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return delegators[validator][delegator];
     }
 
-    function descDelegateAmount(
+    function getStakerRate(address validator) public view returns (uint256) {
+        return validators[validator].rate;
+    }
+
+    // Check the last 12 digits of the amount before use
+    function descDelegateAmountAndPower(
         address validator,
         address delegator,
         uint256 amount
@@ -294,5 +303,18 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
             "insufficient amount"
         );
         delegators[validator][delegator] -= amount;
+        Power powerContract = Power(powerAddress);
+        powerContract.addPower(validator, amount / (10**12));
+    }
+
+    // Check the last 12 digits of the amount before use
+    function addDelegateAmountAndPower(
+        address validator,
+        address delegator,
+        uint256 amount
+    ) public {
+        delegators[validator][delegator] += amount;
+        Power powerContract = Power(powerAddress);
+        powerContract.addPower(validator, amount / (10**12));
     }
 }

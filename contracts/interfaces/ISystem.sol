@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-interface ISystem {
+import "./IByztine.sol";
+
+interface ISystem is IByztine {
     struct ValidatorInfo {
         bytes public_key;
         address addr;
@@ -10,15 +12,10 @@ interface ISystem {
 
     function getValidatorInfoList() external returns (ValidatorInfo[] memory);
 
-    enum ByztineBehavior {
-        DuplicateVote,
-        LightClientAttack,
-        Unknown
-    }
-
     function blockTrigger(
         address proposer,
         address[] memory signed,
+        uint256 circulationAmount,
         address[] memory byztine,
         ByztineBehavior[] memory behavior
     ) external;

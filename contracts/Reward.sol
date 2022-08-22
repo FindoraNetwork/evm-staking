@@ -92,6 +92,9 @@ contract Reward is AccessControlEnumerable, IByztine {
         claimingAddressSet.add(validator);
         claimingOps[validator] += amount;
         rewords[validator] -= amount;
+        if (rewords[validator] == 0) {
+            delete rewords[validator];
+        }
     }
 
     // Clear the data currently claiming

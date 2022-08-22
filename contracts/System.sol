@@ -59,6 +59,7 @@ contract System is Ownable, ISystem {
         validatorSetMaximum = validatorSetMaximum_;
     }
 
+    // Validator info
     function getValidatorInfoList()
         external
         view
@@ -129,22 +130,33 @@ contract System is Ownable, ISystem {
         address[] memory byztine,
         ByztineBehavior[] memory behavior
     ) external override {
+        // Return unDelegate assets
         Staking staking = Staking(stakingAddress);
         staking.trigger();
+
+        // Reward
         Reward reward = Reward(rewardAddress);
         reward.reward(proposer, signed, circulationAmount);
+
+        // Punish
         reward.punish(byztine, behavior);
     }
 
-    function getClaimOps() external view override returns (ClaimOps[] memory) {
+    // Get data currently claiming
+    function getClaimOps() external override returns (ClaimOps[] memory) {
         ClaimOps[] memory claimOps;
         uint256 claimAmount;
+
         Reward reward = Reward(rewardAddress);
-        address[] memory claimAccounts = reward.getClaimAccount();
+        address[] memory claimAccounts = reward.getClaimAccounts();
         for (uint256 i = 0; i < claimAccounts.length; i++) {
             claimAmount = claimAmount = reward.getClaimAmount(claimAccounts[i]);
             claimOps[i] = ClaimOps(claimAccounts[i], claimAmount);
         }
+
+        // Clear the data currently claiming
+        reward.clearClaimOps(claimAccounts);
+
         return claimOps;
     }
 }

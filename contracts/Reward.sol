@@ -164,7 +164,7 @@ contract Reward is AccessControlEnumerable, IBase {
         );
 
         // 给proposer发放奖
-        uint256 am = sc.getDelegateAmount(staker, staker);
+        uint256 am = sc.getDelegateAmount(staker, staker) + rewords[staker];
         uint256 proposerRewards = (am / total_amount) *
             (global_amount *
                 ((returnRateProposer[0] / returnRateProposer[1]) /
@@ -410,7 +410,9 @@ contract Reward is AccessControlEnumerable, IBase {
         // 重新赋值新变量，解决栈太深
         address[] memory delegators = delegatorOfStaker;
         for (uint256 i = 0; i < delegators.length; i++) {
-            am = sc.getDelegateAmount(staker, delegators[i]);
+            am =
+                sc.getDelegateAmount(staker, delegators[i]) +
+                rewords[delegators[i]];
             // 带佣金的奖励
             delegatorReward =
                 (am / total_amount) *

@@ -17,9 +17,6 @@ contract Reward is AccessControlEnumerable, IBase {
     // Power contract address
     address public powerAddress;
 
-    // Validator-info set Maximum length
-    uint256 public validatorSetMaximum;
-
     // Punish rate
     uint256 private duplicateVotePunishRate;
     uint256 private lightClientAttackPunishRate;
@@ -199,10 +196,11 @@ contract Reward is AccessControlEnumerable, IBase {
     }
 
     // Punish validator and delegators
-    function punish(address[] memory byztine, ByztineBehavior[] memory behavior)
-        public
-        onlyRole(SYSTEM_ROLE)
-    {
+    function punish(
+        address[] memory byztine,
+        ByztineBehavior[] memory behavior,
+        uint256 validatorSetMaximum
+    ) public onlyRole(SYSTEM_ROLE) {
         // Staking 合约对象
         Staking sc = Staking(stakingAddress);
         // Punish rate
@@ -277,7 +275,7 @@ contract Reward is AccessControlEnumerable, IBase {
             uint256 realPunishAmount;
 
             // 解决栈太深，重新赋值新变量
-
+            uint256[2] memory delegatorPunishRate = punishRate;
             for (uint256 j = 0; j < delegators.length; j++) {
                 delegateAmount = sc.getDelegateAmount(
                     delegators[j],
@@ -287,8 +285,8 @@ contract Reward is AccessControlEnumerable, IBase {
                 //                    ((delegateAmount * punishRate[0]) / punishRate[1]) /
                 //                    (10**12);
                 punishAmount =
-                    (((delegateAmount * punishRate[0]) / punishRate[1]) /
-                        (10**12)) *
+                    (((delegateAmount * delegatorPunishRate[0]) /
+                        delegatorPunishRate[1]) / (10**12)) *
                     (10**12);
 
                 if (punishAmount > (delegateAmount + rewords[delegators[j]])) {

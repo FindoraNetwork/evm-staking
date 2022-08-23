@@ -145,17 +145,10 @@ contract System is Ownable, ISystem {
     // Get data currently claiming
     function getClaimOps() external override returns (ClaimOps[] memory) {
         ClaimOps[] memory claimOps;
-        uint256 claimAmount;
 
         Reward reward = Reward(rewardAddress);
-        address[] memory claimAccounts = reward.getClaimAccounts();
-        for (uint256 i = 0; i < claimAccounts.length; i++) {
-            claimAmount = claimAmount = reward.getClaimAmount(claimAccounts[i]);
-            claimOps[i] = ClaimOps(claimAccounts[i], claimAmount);
-        }
-
-        // Clear the data currently claiming
-        reward.clearClaimOps(claimAccounts);
+        claimOps = reward.GetClaimOps();
+        reward.clearClaimOps();
 
         return claimOps;
     }

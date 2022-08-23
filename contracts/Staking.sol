@@ -194,28 +194,28 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
         // Check unDelegate amount
         require(amount > 0, "amount must be greater than 0");
-        uint256 power;
-        (, power) = convertAmount(amount, 12);
+        convertAmount(amount, 12);
         require(
             delegators[msg.sender][validator] >= amount,
             "amount is too large"
         );
 
-        delegators[msg.sender][validator] -= amount;
-        delegateTotal -= amount;
-
-        Power powerContract = Power(powerAddress);
-        powerContract.descPower(validator, power);
-
-        if (delegators[msg.sender][validator] == 0) {
-            delegatorsOfValidators[validator].remove(msg.sender);
-        }
-
-        if (powerContract.getPower(validator) == 0) {
-            allValidators.remove(validator);
-            delete validators[validator];
-            delete delegatorsOfValidators[validator];
-        }
+        // 此部分逻辑搬到实际发放undelegate金额的时候（trigger函数中），因为锁定期仍然有奖励
+        //        delegators[msg.sender][validator] -= amount;
+        //        delegateTotal -= amount;
+        //
+        //        Power powerContract = Power(powerAddress);
+        //        powerContract.descPower(validator, power);
+        //
+        //        if (delegators[msg.sender][validator] == 0) {
+        //            delegatorsOfValidators[validator].remove(msg.sender);
+        //        }
+        //
+        //        if (powerContract.getPower(validator) == 0) {
+        //            allValidators.remove(validator);
+        //            delete validators[validator];
+        //            delete delegatorsOfValidators[validator];
+        //        }
 
         // Push record
         unDelegationRecords.push(
@@ -231,6 +231,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
     // Return unDelegate assets
     function trigger() public onlyRole(SYSTEM_ROLE) {
         uint256 blockNo = block.number;
+        uint256 power;
+
         for (uint256 i; i < unDelegationRecords.length; i++) {
             if ((blockNo - unDelegationRecords[i].height) >= heightDifference) {
                 Address.sendValue(
@@ -238,6 +240,35 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
                     unDelegationRecords[i].amount
                 );
 
+                //
+                (, power) = convertAmount(unDelegationRecords[i].amount, 12);
+                delegators[msg.sender][
+                    unDelegationRecords[i].staker
+                ] -= unDelegationRecords[i].amount;
+                delegateTotal -= unDelegationRecords[i].amount;
+                power -= unDelegationRecords[i].amount / (10**12);
+
+                Power powerContract = Power(powerAddress);
+                powerContract.descPower(unDelegationRecords[i].staker, power);
+
+                if (
+                    delegators[msg.sender][unDelegationRecords[i].staker] == 0
+                ) {
+                    delegatorsOfValidators[unDelegationRecords[i].staker]
+                        .remove(msg.sender);
+                }
+
+                if (
+                    powerContract.getPower(unDelegationRecords[i].staker) == 0
+                ) {
+                    allValidators.remove(unDelegationRecords[i].staker);
+                    delete validators[unDelegationRecords[i].staker];
+                    delete delegatorsOfValidators[
+                        unDelegationRecords[i].staker
+                    ];
+                }
+
+                //
                 emit UnDelegation(
                     unDelegationRecords[i].staker,
                     unDelegationRecords[i].receiver,
@@ -297,7 +328,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         address validator,
         address delegator,
         uint256 amount
-    ) public {
+    ) public onlyRole(SYSTEM_ROLE) {
         require(
             delegators[validator][delegator] >= amount,
             "insufficient amount"
@@ -306,15 +337,15 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.addPower(validator, amount / (10**12));
     }
-
-    // Check the last 12 digits of the amount before use
-    function addDelegateAmountAndPower(
-        address validator,
-        address delegator,
-        uint256 amount
-    ) public {
-        delegators[validator][delegator] += amount;
-        Power powerContract = Power(powerAddress);
-        powerContract.addPower(validator, amount / (10**12));
-    }
+    //
+    //    // Check the last 12 digits of the amount before use
+    //    function addDelegateAmountAndPower(
+    //        address validator,
+    //        address delegator,
+    //        uint256 amount
+    //    ) public onlyRole(SYSTEM_ROLE) {
+    //        delegators[validator][delegator] += amount;
+    //        Power powerContract = Power(powerAddress);
+    //        powerContract.addPower(validator, amount / (10**12));
+    //    }
 }

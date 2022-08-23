@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "./IByztine.sol";
+import "./IBase.sol";
 
-interface ISystem is IByztine {
-    struct ValidatorInfo {
-        bytes public_key;
-        address addr;
-        uint256 power;
-    }
-
+interface ISystem is IBase {
     function getValidatorInfoList() external returns (ValidatorInfo[] memory);
 
     function blockTrigger(
@@ -20,10 +14,11 @@ interface ISystem is IByztine {
         ByztineBehavior[] memory behavior
     ) external;
 
-    struct ClaimOps {
-        address addr;
-        uint256 amount;
-    }
+    // 移到IBase.sol了
+    //    struct ClaimOps {
+    //        address addr;
+    //        uint256 amount;
+    //    }
 
     function getClaimOps() external returns (ClaimOps[] memory);
 }

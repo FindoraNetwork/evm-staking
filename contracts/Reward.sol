@@ -275,15 +275,21 @@ contract Reward is AccessControlEnumerable, IBase {
             uint256 delegateAmount;
             uint256 punishAmount;
             uint256 realPunishAmount;
+
+            // 解决栈太深，重新赋值新变量
+
             for (uint256 j = 0; j < delegators.length; j++) {
                 delegateAmount = sc.getDelegateAmount(
                     delegators[j],
                     punishInfoRes[i].validator
                 );
-                power =
-                    ((delegateAmount * punishRate[0]) / punishRate[1]) /
+                //                power =
+                //                    ((delegateAmount * punishRate[0]) / punishRate[1]) /
+                //                    (10**12);
+                punishAmount =
+                    (((delegateAmount * punishRate[0]) / punishRate[1]) /
+                        (10**12)) *
                     (10**12);
-                punishAmount = power * (10**12);
 
                 if (punishAmount > (delegateAmount + rewords[delegators[j]])) {
                     // 处罚金额大于质押金额和奖励金额之和，就将质押金额和奖励金额清零
@@ -400,27 +406,25 @@ contract Reward is AccessControlEnumerable, IBase {
         uint256 delegatorReward;
         // 按照质押比例给某个delegator，减去佣金后实际发放的奖励金额
         uint256 delegatorRealReward;
-
+        // 为了解决栈太深，重新赋值新变量
         address staker = proposer;
 
+        // 重新赋值新变量，解决栈太深
         address[] memory delegators = delegatorOfStaker;
         for (uint256 i = 0; i < delegators.length; i++) {
             am = sc.getDelegateAmount(staker, delegators[i]);
-
+            // 带佣金的奖励
             delegatorReward =
                 (am / total_amount) *
                 (global_amount *
                     ((returnRate[0] / returnRate[1]) /
                         ((365 * 24 * 3600) / blockInterval)));
-
             // 佣金，佣金给到这个validator的self-delegator的delegation之中
             commission = delegatorReward * commissionRate;
-
             // 实际分配给delegator的奖励， 奖励需要按佣金比例扣除佣金,最后剩下的才是奖励
             delegatorRealReward = delegatorReward - commission;
             // 格式化奖励金额，将后12为置为0
             delegatorRealReward = (delegatorRealReward / (10**12)) * (10**12);
-
             // 增加delegator reward金额
             rewords[delegators[i]] += delegatorRealReward;
 

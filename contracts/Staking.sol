@@ -6,7 +6,6 @@ import "./utils/utils.sol";
 import "./interfaces/IStaking.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -16,33 +15,40 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
 
-    uint256 public delegateTotal;
+    uint256 public delegateTotal; // Total delegate amount
     address public system; // System contract address
     address public powerAddress; // Power contract address
-    uint256 public stakeMinimum;
-    uint256 public delegateMinimum;
+    uint256 public stakeMinimum; // Minimum number of stacks
+    uint256 public delegateMinimum; // Minimum number of delegate
     uint256 public powerProportionMaximum; // default 5
-    uint256 public blockInterval; //
+    uint256 public blockInterval; // Block out frequency
     uint256 public heightDifference; // number of blocks to wait,21days
 
     struct Validator {
-        bytes public_key;
-        string memo;
-        uint256 rate; // length is 18
+        bytes public_key; // Validator public key
+        string memo; //
+        uint256 rate; // Length is 18
         address staker; // fra/0x
     }
     /*
-     * address（tendermint address）
+     * address is tendermint-address
      * (validator address => Validator)
      */
     mapping(address => Validator) public validators;
 
+    // Addresses of all validators
     EnumerableSet.AddressSet private allValidators;
 
-    // (validator => delegator address set).
+    /*
+     * All delegators of a validator
+     * (validator address => delegator address set).
+     */
     mapping(address => EnumerableSet.AddressSet) private delegatorsOfValidators;
 
-    // (delegator => (validator => amount)).
+    /*
+     * Delegate info
+     * (delegator => (validator => amount)).
+     */
     mapping(address => mapping(address => uint256)) public delegators;
 
     struct UnDelegationRecord {
@@ -52,6 +58,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         uint256 height;
     }
 
+    // UnDelegation records
     UnDelegationRecord[] public unDelegationRecords;
 
     event Stake(
@@ -240,7 +247,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
                     unDelegationRecords[i].amount
                 );
 
-                //
+                // Decrease amount and power
                 (, power) = convertAmount(unDelegationRecords[i].amount, 12);
                 delegators[msg.sender][
                     unDelegationRecords[i].staker
@@ -268,7 +275,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
                     ];
                 }
 
-                //
+                // Event
                 emit UnDelegation(
                     unDelegationRecords[i].staker,
                     unDelegationRecords[i].receiver,
@@ -299,7 +306,8 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return allValidators.values();
     }
 
-    function getDelegators(address validator)
+    // Get all delegators of a validator/staker
+    function getDelegatorsByStaker(address validator)
         public
         view
         returns (address[] memory)
@@ -307,10 +315,12 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return delegatorsOfValidators[validator].values();
     }
 
+    // Check whether an validator-account is a staker
     function isStaker(address validator) public view returns (bool) {
         return allValidators.contains(validator);
     }
 
+    // Get delegate amount
     function getDelegateAmount(address validator, address delegator)
         public
         view
@@ -319,6 +329,7 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return delegators[validator][delegator];
     }
 
+    // Get staker rate
     function getStakerRate(address validator) public view returns (uint256) {
         return validators[validator].rate;
     }
@@ -337,15 +348,4 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         Power powerContract = Power(powerAddress);
         powerContract.addPower(validator, amount / (10**12));
     }
-    //
-    //    // Check the last 12 digits of the amount before use
-    //    function addDelegateAmountAndPower(
-    //        address validator,
-    //        address delegator,
-    //        uint256 amount
-    //    ) public onlyRole(SYSTEM_ROLE) {
-    //        delegators[validator][delegator] += amount;
-    //        Power powerContract = Power(powerAddress);
-    //        powerContract.addPower(validator, amount / (10**12));
-    //    }
 }

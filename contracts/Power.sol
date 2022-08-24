@@ -2,20 +2,21 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Power is AccessControlEnumerable {
+contract Power is Initializable, AccessControlEnumerable {
     bytes32 public constant ADD_POWER_ROLE = keccak256("ADD_POWER");
     bytes32 public constant DESC_POWER_ROLE = keccak256("DESC_POWER");
 
     address public system; // System contract address
     address public stakingAddress; // Staking contract address
 
-    uint256 public powerTotal;
+    uint256 public powerTotal; // Total power
 
     // (validator address => Validator)
     mapping(address => uint256) public validators;
 
-    constructor() {
+    function initialize() public initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 

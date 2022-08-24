@@ -6,8 +6,9 @@ import "./interfaces/ISystem.sol";
 import "./interfaces/IBase.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Reward is AccessControlEnumerable, IBase {
+contract Reward is Initializable, AccessControlEnumerable, IBase {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
@@ -29,7 +30,10 @@ contract Reward is AccessControlEnumerable, IBase {
     // Claim data
     ClaimOps[] public claimOps;
 
-    // (height => reward rate records)
+    /*
+    *  APY：delegator return_rate records
+    * (height => reward rate)
+    */
     mapping(uint256 => uint256[2]) public returnRateRecords;
 
     struct PunishInfo {
@@ -46,14 +50,14 @@ contract Reward is AccessControlEnumerable, IBase {
     event Rewards(address rewardAddress, uint256 amount);
     event Claim(address claimAddress, uint256 amount);
 
-    constructor(
+    function initialize(
         uint256 duplicateVotePunishRate_,
         uint256 lightClientAttackPunishRate_,
         uint256 offLinePunishRate_,
         uint256 unknownPunishRate_,
         address stakingAddress_,
         address powerAddress_
-    ) {
+    ) public initializer {
         duplicateVotePunishRate = duplicateVotePunishRate_;
         lightClientAttackPunishRate = lightClientAttackPunishRate_;
         offLinePunishRate = offLinePunishRate_;
@@ -148,7 +152,7 @@ contract Reward is AccessControlEnumerable, IBase {
         uint256 blockInterval = sc.blockInterval();
         // 计算质押金额
         total_amount += sc.getDelegateAmount(staker, staker);
-        address[] memory delegators = sc.getDelegators(staker);
+        address[] memory delegators = sc.getDelegatorsByStaker(staker);
         for (uint256 i = 0; i < delegators.length; i++) {
             total_amount += sc.getDelegateAmount(staker, delegators[i]);
         }
@@ -287,7 +291,7 @@ contract Reward is AccessControlEnumerable, IBase {
             );
 
             // 处罚staker的delegators
-            address[] memory delegators = sc.getDelegators(
+            address[] memory delegators = sc.getDelegatorsByStaker(
                 punishInfoRes[i].validator
             );
             uint256 delegateAmount;

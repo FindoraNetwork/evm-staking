@@ -164,6 +164,7 @@ contract Reward is AccessControlEnumerable, IBase {
         );
 
         // 给proposer发放奖
+        // staker的质押金额+奖励
         uint256 am = sc.getDelegateAmount(staker, staker) + rewords[staker];
         uint256 proposerRewards = (am / total_amount) *
             (global_amount *
@@ -197,12 +198,13 @@ contract Reward is AccessControlEnumerable, IBase {
 
     // Punish validator and delegators
     function punish(
+        address[] memory signed,
         address[] memory byztine,
         ByztineBehavior[] memory behavior,
         uint256 validatorSetMaximum
     ) public onlyRole(SYSTEM_ROLE) {
         // Staking 合约对象
-        Staking sc = Staking(stakingAddress);
+        Staking stakingContract = Staking(stakingAddress);
         // Punish rate
         uint256[2] memory punishRate;
         // staker 质押金额
@@ -219,14 +221,17 @@ contract Reward is AccessControlEnumerable, IBase {
         PunishInfo[] memory punishInfoRes;
         for (uint256 i = 0; i < byztineSatisfy.length; i++) {
             // Check whether the byztine is a stacker
-            if (!sc.isStaker(byztineSatisfy[i])) {
+            if (!stakingContract.isStaker(byztineSatisfy[i])) {
                 continue;
             }
 
             punishInfo[punishInfoIndex] = PunishInfo(
                 byztine[i],
                 behavior[i],
-                sc.getDelegateAmount(byztineSatisfy[i], byztineSatisfy[i])
+                stakingContract.getDelegateAmount(
+                    byztineSatisfy[i],
+                    byztineSatisfy[i]
+                )
             );
             punishInfoIndex++;
         }
@@ -241,8 +246,23 @@ contract Reward is AccessControlEnumerable, IBase {
         }
 
         uint256 power;
+        bool isOnLine;
+        address[] memory signedValidators = signed;
+        // 解决栈太深，重新赋值新变量
+        Staking sc = Staking(stakingAddress);
         for (uint256 i = 0; i < punishInfoRes.length; i++) {
-            punishRate = getPunishRate(punishInfoRes[i].behavior);
+            // 计算punish rate
+            {
+                for (uint256 h = 0; h < signedValidators.length; h++) {
+                    if (signedValidators[h] == punishInfoRes[i].validator) {
+                        isOnLine = true;
+                    }
+                }
+                punishRate = getPunishRate(punishInfoRes[i].behavior, isOnLine);
+            }
+
+            // 解决栈太深，重新赋值新变量
+            uint256[2] memory delegatorPunishRate = punishRate;
 
             // 处罚 staker
 
@@ -274,16 +294,11 @@ contract Reward is AccessControlEnumerable, IBase {
             uint256 punishAmount;
             uint256 realPunishAmount;
 
-            // 解决栈太深，重新赋值新变量
-            uint256[2] memory delegatorPunishRate = punishRate;
             for (uint256 j = 0; j < delegators.length; j++) {
                 delegateAmount = sc.getDelegateAmount(
                     delegators[j],
                     punishInfoRes[i].validator
                 );
-                //                power =
-                //                    ((delegateAmount * punishRate[0]) / punishRate[1]) /
-                //                    (10**12);
                 punishAmount =
                     (((delegateAmount * delegatorPunishRate[0]) /
                         delegatorPunishRate[1]) / (10**12)) *
@@ -365,13 +380,15 @@ contract Reward is AccessControlEnumerable, IBase {
     }
 
     // Get punish rate
-    function getPunishRate(ByztineBehavior byztineBehavior)
+    function getPunishRate(ByztineBehavior byztineBehavior, bool isOnLine)
         internal
         view
         returns (uint256[2] memory)
     {
         uint256[2] memory punishRate;
-        if (byztineBehavior == ByztineBehavior.DuplicateVote) {
+        if (!isOnLine) {
+            punishRate = [offLinePunishRate, 10**18];
+        } else if (byztineBehavior == ByztineBehavior.DuplicateVote) {
             punishRate = [duplicateVotePunishRate, 10**18];
         } else if (byztineBehavior == ByztineBehavior.LightClientAttack) {
             punishRate = [lightClientAttackPunishRate, 10**18];
@@ -396,7 +413,7 @@ contract Reward is AccessControlEnumerable, IBase {
         // 佣金比例
         uint256 commissionRate = sc.getStakerRate(proposer);
 
-        // 某个delegator质押金额
+        // 某个delegator质押金额+奖励
         uint256 am;
         // 佣金
         uint256 commission;

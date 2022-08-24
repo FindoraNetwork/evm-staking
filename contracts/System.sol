@@ -139,7 +139,7 @@ contract System is Ownable, ISystem {
         reward.reward(proposer, signed, circulationAmount);
 
         // Punish
-        reward.punish(byztine, behavior, validatorSetMaximum);
+        reward.punish(signed, byztine, behavior, validatorSetMaximum);
     }
 
     // Get data currently claiming

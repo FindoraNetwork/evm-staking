@@ -39,7 +39,7 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
     struct PunishInfo {
         address validator;
         ByztineBehavior behavior;
-        uint256 stakingAmount;
+        uint256 power;
     }
 
     event Punish(
@@ -197,10 +197,7 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
     {
         for (uint256 i = 0; i < punishInfo.length - 1; i++) {
             for (uint256 j = 0; j < punishInfo.length - 1 - i; j++) {
-                if (
-                    punishInfo[j].stakingAmount <
-                    punishInfo[j + 1].stakingAmount
-                ) {
+                if (punishInfo[j].power < punishInfo[j + 1].power) {
                     PunishInfo memory temp = punishInfo[j];
                     punishInfo[j] = punishInfo[j + 1];
                     punishInfo[j + 1] = temp;
@@ -219,35 +216,34 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
     ) public onlyRole(SYSTEM_ROLE) {
         // Staking 合约对象
         Staking stakingContract = Staking(stakingAddress);
+        // Power 合约对象
+        Power powerContract = Power(stakingAddress);
         // Punish rate
         uint256[2] memory punishRate;
         // validator 质押金额
         uint256 validatorDelegateAmount;
         // validator 被处罚金额
         uint256 validatorPunishAmount;
-        // byztine账户地址数组（去除掉不是validator的byztine）
-        address[] memory byztineSatisfy = byztine;
+        // 解决栈太深，重新赋值新变量
+        address[] memory byztineCopy = byztine;
         // 被处罚的validator信息（账户地址、处罚金额，被处罚行为）
         PunishInfo[] memory punishInfo;
         // punishInfo 数组索引
         uint256 punishInfoIndex;
         // 被处罚的validator信息（已做好降序排列，并且根据数量限制去除无效处罚信息）
         PunishInfo[] memory punishInfoRes;
-        for (uint256 i = 0; i < byztineSatisfy.length; i++) {
-            // Check whether the byztine is a stacker
-            if (!stakingContract.isValidator(byztineSatisfy[i])) {
+        for (uint256 i = 0; i < byztineCopy.length; i++) {
+            // Check whether the byztine is a validator
+            if (!stakingContract.isValidator(byztineCopy[i])) {
                 continue;
             }
 
             punishInfo[punishInfoIndex] = PunishInfo(
-                byztine[i],
+                byztineCopy[i],
                 behavior[i],
-                // power : 计算需要加上delegator的
-                stakingContract.getDelegateAmount(
-                    byztineSatisfy[i],
-                    byztineSatisfy[i]
-                )
+                powerContract.getPower(byztineCopy[i])
             );
+
             punishInfoIndex++;
         }
         // 按照质押金额倒叙重排
@@ -318,7 +314,7 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
                     (delegateAmount * delegatorPunishRate[0]) /
                     delegatorPunishRate[1];
 
-                // 处罚金额小于于质押金额
+                // 处罚金额小于质押金额
                 realPunishAmount = punishAmount;
                 if (punishAmount > (delegateAmount + rewords[delegators[j]])) {
                     // 处罚金额大于质押金额和奖励金额之和，就将质押金额和奖励金额清零

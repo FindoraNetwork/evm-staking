@@ -31,9 +31,9 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
     ClaimOps[] public claimOps;
 
     /*
-    *  APY：delegator return_rate records
-    * (height => reward rate)
-    */
+     *  APY：delegator return_rate records
+     * (height => reward rate)
+     */
     mapping(uint256 => uint256[2]) public returnRateRecords;
 
     struct PunishInfo {
@@ -94,6 +94,7 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         unknownPunishRate = unknownPunishRate_;
     }
 
+    // Claim assets
     function claim(address delegator, uint256 amount) external {
         require(rewords[delegator] >= amount, "insufficient amount");
         rewords[delegator] -= amount;
@@ -122,7 +123,7 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         uint256 circulationAmount //
     ) public onlyRole(SYSTEM_ROLE) {
         uint256[2] memory returnRateProposer;
-        // Staker return_rate
+        // Validator/Proposer return_rate
         returnRateProposer = lastVotePercent(signed);
 
         Staking sc = Staking(stakingAddress);
@@ -137,29 +138,31 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         returnRateRecords[block.number] = delegatorReturnRate;
 
         // 质押金额global_amount：所有用户质押金额
-        // 质押金额total_amount（当前staker相关）：staker质押金额 + 其旗下delegator质押金额
+        // 质押金额total_amount（当前validator相关）：validator质押金额 + 其旗下delegator质押金额
         // 质押金额am：当前delegator的质押金额
         // return_rate 分为两种，分别在上面已经计算
         // 计算公式：(am / total_amount) * (global_amount * ((return_rate[0] / return_rate[1]) / ((365 * 24 * 3600) / block_itv)))
 
         // 解决栈太深，所以赋值新变量
-        address staker = validator;
-        // 当前staker及旗下所有delegator质押金额
+        address validatorCopy = validator;
+        // 当前validator及旗下所有delegator质押金额
         uint256 total_amount;
         // 整个系统质押总额
         uint256 global_amount = sc.delegateTotal();
         // 出块周期
         uint256 blockInterval = sc.blockInterval();
         // 计算质押金额
-        total_amount += sc.getDelegateAmount(staker, staker);
-        address[] memory delegators = sc.getDelegatorsByStaker(staker);
+        address[] memory delegators = sc.getDelegatorsByValidator(
+            validatorCopy
+        );
         for (uint256 i = 0; i < delegators.length; i++) {
-            total_amount += sc.getDelegateAmount(staker, delegators[i]);
+            total_amount += sc.getDelegateAmount(validatorCopy, delegators[i]);
         }
 
-        // 给proposer所有的delegator发放奖励
-        rewardDelegator(
-            staker,
+        // 给proposer所有的delegator发放奖励,并返回所有delegator的总佣金
+        uint256 totalCommission;
+        totalCommission = rewardDelegator(
+            validatorCopy,
             delegators,
             total_amount,
             global_amount,
@@ -168,16 +171,21 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         );
 
         // 给proposer发放奖
-        // staker的质押金额+奖励
-        uint256 am = sc.getDelegateAmount(staker, staker) + rewords[staker];
+        // validator的质押金额+奖励
+
+        uint256 am = sc.getStakerDelegateAmount(validatorCopy);
+        // (d.reward * am)/d.amount(delegator所有的质押金额)
+        am += (rewords[validatorCopy] * am) / sc.delegateTotal();
+
         uint256 proposerRewards = (am / total_amount) *
             (global_amount *
                 ((returnRateProposer[0] / returnRateProposer[1]) /
                     ((365 * 24 * 3600) / blockInterval)));
 
-        rewords[staker] += proposerRewards;
+        // proposer奖励 = 公式计算结果+旗下所有delegator的佣金
+        rewords[validatorCopy] += proposerRewards + totalCommission;
 
-        emit Rewards(staker, proposerRewards);
+        emit Rewards(validatorCopy, proposerRewards);
     }
 
     function descSort(PunishInfo[] memory punishInfo)
@@ -211,27 +219,28 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         Staking stakingContract = Staking(stakingAddress);
         // Punish rate
         uint256[2] memory punishRate;
-        // staker 质押金额
-        uint256 stakerDelegateAmount;
-        // staker 被处罚金额
-        uint256 stakerPunishAmount;
-        // byztine账户地址数组（去除掉不是staker的byztine）
+        // validator 质押金额
+        uint256 validatorDelegateAmount;
+        // validator 被处罚金额
+        uint256 validatorPunishAmount;
+        // byztine账户地址数组（去除掉不是validator的byztine）
         address[] memory byztineSatisfy = byztine;
-        // 被处罚的staker信息（账户地址、处罚金额，被处罚行为）
+        // 被处罚的validator信息（账户地址、处罚金额，被处罚行为）
         PunishInfo[] memory punishInfo;
         // punishInfo 数组索引
         uint256 punishInfoIndex;
-        // 被处罚的staker信息（已做好降序排列，并且根据数量限制去除无效处罚信息）
+        // 被处罚的validator信息（已做好降序排列，并且根据数量限制去除无效处罚信息）
         PunishInfo[] memory punishInfoRes;
         for (uint256 i = 0; i < byztineSatisfy.length; i++) {
             // Check whether the byztine is a stacker
-            if (!stakingContract.isStaker(byztineSatisfy[i])) {
+            if (!stakingContract.isValidator(byztineSatisfy[i])) {
                 continue;
             }
 
             punishInfo[punishInfoIndex] = PunishInfo(
                 byztine[i],
                 behavior[i],
+                // power : 计算需要加上delegator的
                 stakingContract.getDelegateAmount(
                     byztineSatisfy[i],
                     byztineSatisfy[i]
@@ -242,14 +251,13 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         // 按照质押金额倒叙重排
         punishInfo = descSort(punishInfo);
         // 如果处罚信息数量过大，去掉多余处罚信息
-        for (uint256 i = 0; i < punishInfo.length; i++) {
-            if (i >= validatorSetMaximum) {
+        // punishInfo.length = validatorSetMaximum; 报错了，貌似只适合bytes字节数组，暂时换回下面方式
+        for (uint256 a = 0; a < punishInfo.length; a++) {
+            if (a >= validatorSetMaximum) {
                 break;
             }
-            punishInfoRes[i] = punishInfo[i];
         }
 
-        uint256 power;
         bool isOnLine;
         address[] memory signedValidators = signed;
         // 解决栈太深，重新赋值新变量
@@ -268,34 +276,35 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
             // 解决栈太深，重新赋值新变量
             uint256[2] memory delegatorPunishRate = punishRate;
 
-            // 处罚 staker
-
-            stakerDelegateAmount = sc.getDelegateAmount(
+            // 处罚 validator
+            validatorDelegateAmount = sc.getDelegateAmount(
                 punishInfoRes[i].validator,
                 punishInfoRes[i].validator
             );
-            power =
-                ((stakerDelegateAmount * punishRate[0]) / punishRate[1]) /
-                (10**12);
-            stakerPunishAmount = power * (10**12);
+            validatorPunishAmount =
+                (validatorDelegateAmount * punishRate[0]) /
+                punishRate[1];
             sc.descDelegateAmountAndPower(
                 punishInfoRes[i].validator,
                 punishInfoRes[i].validator,
-                stakerPunishAmount
+                validatorPunishAmount
             );
 
             emit Punish(
                 punishInfoRes[i].validator,
                 punishInfoRes[i].behavior,
-                stakerPunishAmount
+                validatorPunishAmount
             );
 
-            // 处罚staker的delegators
-            address[] memory delegators = sc.getDelegatorsByStaker(
+            // 处罚validator的delegators
+            address[] memory delegators = sc.getDelegatorsByValidator(
                 punishInfoRes[i].validator
             );
+            // 质押金额
             uint256 delegateAmount;
+            // 处罚金额
             uint256 punishAmount;
+            // 实际处罚金额
             uint256 realPunishAmount;
 
             for (uint256 j = 0; j < delegators.length; j++) {
@@ -304,37 +313,27 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
                     punishInfoRes[i].validator
                 );
                 punishAmount =
-                    (((delegateAmount * delegatorPunishRate[0]) /
-                        delegatorPunishRate[1]) / (10**12)) *
-                    (10**12);
+                    (delegateAmount * delegatorPunishRate[0]) /
+                    delegatorPunishRate[1];
 
                 if (punishAmount > (delegateAmount + rewords[delegators[j]])) {
                     // 处罚金额大于质押金额和奖励金额之和，就将质押金额和奖励金额清零
                     realPunishAmount = delegateAmount + rewords[delegators[j]];
-                    sc.descDelegateAmountAndPower(
-                        punishInfoRes[i].validator,
-                        delegators[j],
-                        delegateAmount
-                    );
                     rewords[delegators[j]] = 0;
                 } else if (punishAmount > delegateAmount) {
                     // 处罚金额大于质押金额，就将质押金额清零,然后扣除一部分奖励
                     realPunishAmount = punishAmount;
-                    sc.descDelegateAmountAndPower(
-                        punishInfoRes[i].validator,
-                        delegators[j],
-                        delegateAmount
-                    );
                     rewords[delegators[j]] -= punishAmount - delegateAmount;
                 } else {
                     // 处罚金额小于于质押金额，就将质押金额扣除处罚金额
                     realPunishAmount = punishAmount;
-                    sc.descDelegateAmountAndPower(
-                        punishInfoRes[i].validator,
-                        delegators[j],
-                        punishAmount
-                    );
                 }
+
+                sc.descDelegateAmountAndPower(
+                    punishInfoRes[i].validator,
+                    delegators[j],
+                    delegateAmount
+                );
 
                 emit Punish(
                     delegators[j],
@@ -356,8 +355,8 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         uint256 totalPower = powerContract.powerTotal();
         uint256 signedPower;
         for (uint256 i = 0; i < signed.length; i++) {
-            // 判断 签名地址是否是 staker
-            if (sc.isStaker(signed[i])) {
+            // 判断 签名地址是否是 validator
+            if (sc.isValidator(signed[i])) {
                 signedPower += powerContract.getPower(signed[i]);
             }
         }
@@ -406,18 +405,17 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
     // 给proposer所有的delegator发放奖励
     function rewardDelegator(
         address proposer,
-        address[] memory delegatorOfStaker,
+        address[] memory delegatorsOfValidator,
         uint256 total_amount,
         uint256 global_amount,
         uint256[2] memory returnRate,
         uint256 blockInterval
-    ) internal {
+    ) internal returns (uint256) {
         Staking sc = Staking(stakingAddress);
 
         // 佣金比例
-        uint256 commissionRate = sc.getStakerRate(proposer);
-
-        // 某个delegator质押金额+奖励
+        uint256 commissionRate = sc.getValidatorRate(proposer);
+        //
         uint256 am;
         // 佣金
         uint256 commission;
@@ -426,14 +424,18 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         // 按照质押比例给某个delegator，减去佣金后实际发放的奖励金额
         uint256 delegatorRealReward;
         // 为了解决栈太深，重新赋值新变量
-        address staker = proposer;
+        address validator = proposer;
+        // 所有delegator的总佣金
+        uint256 totalCommission;
 
         // 重新赋值新变量，解决栈太深
-        address[] memory delegators = delegatorOfStaker;
+        address[] memory delegators = delegatorsOfValidator;
         for (uint256 i = 0; i < delegators.length; i++) {
-            am =
-                sc.getDelegateAmount(staker, delegators[i]) +
-                rewords[delegators[i]];
+            am = sc.getDelegateAmount(validator, delegators[i]);
+            // (d.reward * am)/d.amount(delegator所有的质押金额)
+            am +=
+                (rewords[delegators[i]] * am) /
+                sc.getDelegateTotalAmount(delegators[i]);
             // 带佣金的奖励
             delegatorReward =
                 (am / total_amount) *
@@ -442,9 +444,10 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
                         ((365 * 24 * 3600) / blockInterval)));
             // 佣金，佣金给到这个validator的self-delegator的delegation之中
             commission = delegatorReward * commissionRate;
+            totalCommission += commission;
             // 实际分配给delegator的奖励， 奖励需要按佣金比例扣除佣金,最后剩下的才是奖励
             delegatorRealReward = delegatorReward - commission;
-            // 格式化奖励金额，将后12为置为0
+            // 格式化奖励金额，将后12位置为0
             delegatorRealReward = (delegatorRealReward / (10**12)) * (10**12);
             // 增加delegator reward金额
             rewords[delegators[i]] += delegatorRealReward;
@@ -452,5 +455,6 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
             // 事件日志
             emit Rewards(delegators[i], delegatorRealReward);
         }
+        return totalCommission;
     }
 }

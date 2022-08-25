@@ -316,6 +316,8 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
                     (delegateAmount * delegatorPunishRate[0]) /
                     delegatorPunishRate[1];
 
+                // 处罚金额小于于质押金额
+                realPunishAmount = punishAmount;
                 if (punishAmount > (delegateAmount + rewords[delegators[j]])) {
                     // 处罚金额大于质押金额和奖励金额之和，就将质押金额和奖励金额清零
                     realPunishAmount = delegateAmount + rewords[delegators[j]];
@@ -324,15 +326,12 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
                     // 处罚金额大于质押金额，就将质押金额清零,然后扣除一部分奖励
                     realPunishAmount = punishAmount;
                     rewords[delegators[j]] -= punishAmount - delegateAmount;
-                } else {
-                    // 处罚金额小于于质押金额，就将质押金额扣除处罚金额
-                    realPunishAmount = punishAmount;
                 }
 
                 sc.descDelegateAmountAndPower(
                     punishInfoRes[i].validator,
                     delegators[j],
-                    delegateAmount
+                    realPunishAmount
                 );
 
                 emit Punish(

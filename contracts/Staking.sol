@@ -341,6 +341,15 @@ contract Staking is Initializable, AccessControlEnumerable, IStaking, Utils {
         return delegatorsOfValidators[validator].values();
     }
 
+    // Get staker address of a validator
+    function getStakerByValidator(address validator)
+        public
+        view
+        returns (address)
+    {
+        return validators[validator].staker;
+    }
+
     // Check whether an validator-account is a Legal validator
     function isValidator(address validator) public view returns (bool) {
         return allValidators.contains(validator);

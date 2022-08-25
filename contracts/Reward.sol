@@ -171,11 +171,13 @@ contract Reward is Initializable, AccessControlEnumerable, IBase {
         );
 
         // 给proposer发放奖
-        // validator的质押金额+奖励
 
         uint256 am = sc.getStakerDelegateAmount(validatorCopy);
-        // (d.reward * am)/d.amount(delegator所有的质押金额)
-        am += (rewords[validatorCopy] * am) / sc.delegateTotal();
+        // 当前validator的staker地址
+        address stakerAddress = sc.getStakerByValidator(validatorCopy);
+        am +=
+            (rewords[validatorCopy] * am) /
+            sc.getDelegateTotalAmount(stakerAddress);
 
         uint256 proposerRewards = (am / total_amount) *
             (global_amount *

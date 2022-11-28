@@ -600,7 +600,7 @@ contract Staking is
         address delegator,
         uint256 amount
     ) public onlyRole(SYSTEM_ROLE) {
-        _addDelegator(delegator, validator, amount)
+        _addDelegator(delegator, validator, amount);
     }
 
     function systemSetDelegationUnbound(

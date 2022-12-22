@@ -132,7 +132,6 @@ contract System is Ownable, IBase {
         uint256 rate
     ) external payable onlySystem {
         System system = System(__self);
-
         return system._stake(validator, public_key, memo, rate);
     }
 
@@ -149,10 +148,27 @@ contract System is Ownable, IBase {
         }
     }
 
+    function adminDelegate(
+        address validator,
+        address delegator
+    ) external payable onlySystem {
+        System system = System(__self);
+        return system._adminDelegate(validator, delegator);
+    }
+
+    function _adminDelegate(
+        address validator,
+        address delegator
+    ) external payable {
+        if (stakingAddress != address(0)) {
+            IStaking staking = IStaking(stakingAddress);
+            staking.adminDelegate(validator, delegator);
+        }
+    }
+
     function delegate(address validator) external payable onlySystem {
         System system = System(__self);
-
-        system._delegate(validator);
+        return system._delegate(validator);
     }
 
     function _delegate(address validator) external payable onlyProxy {

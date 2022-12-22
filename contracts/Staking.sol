@@ -580,7 +580,6 @@ contract Staking is
     function adminDelegate(address validator, address delegator)
         external
         payable
-        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");

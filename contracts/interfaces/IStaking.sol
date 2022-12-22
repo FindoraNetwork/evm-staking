@@ -11,6 +11,11 @@ interface IStaking {
 
     function delegate(address validator) external payable;
 
+    function adminDelegate(
+        address validator,
+        address delegator
+    ) external payable;
+
     function undelegate(address validator, uint256 amount) external;
 
     function updateValidator(

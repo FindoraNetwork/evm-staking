@@ -9,6 +9,14 @@ interface IStaking {
         uint256 rate
     ) external payable;
 
+    function adminStake(
+        address validator,
+        bytes calldata public_key,
+        address staker,
+        string calldata memo,
+        uint256 rate
+    ) external payable;
+
     function delegate(address validator) external payable;
 
     function adminDelegate(
@@ -17,6 +25,12 @@ interface IStaking {
     ) external payable;
 
     function undelegate(address validator, uint256 amount) external;
+
+    function adminUndelegate(
+        address validator,
+        address delegator,
+        uint256 amount
+    ) external;
 
     function updateValidator(
         address validator,

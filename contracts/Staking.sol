@@ -25,7 +25,7 @@ contract Staking is
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM");
     bytes32 public constant POWER_ROLE = keccak256("POWER_ROLE");
-    uint256 public constant FRA_UNITS = 10**6;
+    uint256 public constant FRA_UNITS = 10 ** 6;
 
     /// --- End contract config for staking ---
 
@@ -34,50 +34,45 @@ contract Staking is
     // Mininum staking value; Default: 10000 FRA
     uint256 public stakeMininum;
 
-    function adminSetStakeMinimum(uint256 stakeMininum_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetStakeMinimum(
+        uint256 stakeMininum_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         stakeMininum = stakeMininum_;
     }
 
     // Mininum delegate value; Default 1 unit
     uint256 public delegateMininum;
 
-    function adminSetDelegateMinimum(uint256 delegateMininum_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetDelegateMinimum(
+        uint256 delegateMininum_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegateMininum = delegateMininum_;
     }
 
     // rate of power. decimal is 6
     uint256 public powerRateMaximum;
 
-    function adminSetPowerRateMaximum(uint256 powerRateMaximum_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetPowerRateMaximum(
+        uint256 powerRateMaximum_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         powerRateMaximum = powerRateMaximum_;
     }
 
     // blocktime; Default 16.
     uint256 public blocktime;
 
-    function adminSetBlocktime(uint256 blocktime_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetBlocktime(
+        uint256 blocktime_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         blocktime = blocktime_;
     }
 
     // unbound block count; Default 21 day. (21 * 24 * 60 * 60 / 16)
     uint256 public unboundBlock;
 
-    function adminUnboundBlock(uint256 unboundBlock_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminUnboundBlock(
+        uint256 unboundBlock_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         unboundBlock = unboundBlock_;
     }
 
@@ -130,19 +125,17 @@ contract Staking is
 
     mapping(address => Delegator) public delegators;
 
-    function delegatorsBoundAmount(address delegator, address validator)
-        public
-        view
-        returns (uint256)
-    {
+    function delegatorsBoundAmount(
+        address delegator,
+        address validator
+    ) public view returns (uint256) {
         return delegators[delegator].boundAmount[validator];
     }
 
-    function delegatorsUnboundAmount(address delegator, address validator)
-        public
-        view
-        returns (uint256)
-    {
+    function delegatorsUnboundAmount(
+        address delegator,
+        address validator
+    ) public view returns (uint256) {
         return delegators[delegator].unboundAmount[validator];
     }
 
@@ -219,51 +212,43 @@ contract Staking is
         totalDelegationAmount = totalDelegationAmount.sub(amount);
     }
 
-    function delegatorOfValidatorLength(address delegator)
-        public
-        view
-        returns (uint256)
-    {
+    function delegatorOfValidatorLength(
+        address delegator
+    ) public view returns (uint256) {
         return delegatorOfValidator[delegator].length();
     }
 
-    function delegatorOfValidatorAt(address delegator, uint256 idx)
-        public
-        view
-        returns (address)
-    {
+    function delegatorOfValidatorAt(
+        address delegator,
+        uint256 idx
+    ) public view returns (address) {
         return delegatorOfValidator[delegator].at(idx);
     }
 
-    function delegatorOfValidatorContains(address delegator, address value)
-        public
-        view
-        returns (bool)
-    {
+    function delegatorOfValidatorContains(
+        address delegator,
+        address value
+    ) public view returns (bool) {
         return delegatorOfValidator[delegator].contains(value);
     }
 
-    function validatorOfDelegatorLength(address validator)
-        public
-        view
-        returns (uint256)
-    {
+    function validatorOfDelegatorLength(
+        address validator
+    ) public view returns (uint256) {
         return validatorOfDelegator[validator].length();
     }
 
-    function validatorOfDelegatorAt(address validator, uint256 idx)
-        public
-        view
-        returns (address)
-    {
+    function validatorOfDelegatorAt(
+        address validator,
+        uint256 idx
+    ) public view returns (address) {
         return validatorOfDelegator[validator].at(idx);
     }
 
-    function validatorOfDelegatorContains(address validator, address value)
-        public
-        view
-        returns (bool)
-    {
+    function validatorOfDelegatorContains(
+        address validator,
+        address value
+    ) public view returns (bool) {
         return validatorOfDelegator[validator].contains(value);
     }
 
@@ -384,7 +369,7 @@ contract Staking is
 
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
         require(amount >= stakeMininum, "amount too small");
 
@@ -438,7 +423,7 @@ contract Staking is
 
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
         require(amount >= delegateMininum, "amount is too small");
 
@@ -509,6 +494,39 @@ contract Staking is
         emit Undelegation(validator, msg.sender, amount);
     }
 
+    function adminUndelegate(
+        address validator,
+        address delegator,
+        uint256 amount
+    ) external override {
+        Validator storage v = validators[validator];
+        require(v.staker != address(0), "invalid validator");
+
+        require(amount > 0, "amount must be greater than 0");
+
+        Delegator storage d = delegators[delegator];
+        require(
+            amount <= d.boundAmount[validator],
+            "amount greater than bound amount"
+        );
+
+        _delDelegator(delegator, validator, amount);
+
+        bytes32 idx = keccak256(
+            abi.encode(validator, amount, delegator, block.number)
+        );
+
+        undelegations[idx] = UndelegationInfo(
+            validator,
+            payable(delegator),
+            amount,
+            block.number
+        );
+        allUndelegations.add(idx);
+
+        emit Undelegation(validator, delegator, amount);
+    }
+
     // Update validator
     // 该操作只能有 staker来操作
     function updateValidator(
@@ -552,13 +570,19 @@ contract Staking is
         address staker,
         string calldata memo,
         uint256 rate
-    ) external payable onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external payable override {
         // Check whether the validator was staked
         require(validators[validator].staker == address(0), "already staked");
 
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
+
+        require(amount >= stakeMininum, "amount too small");
+
+        uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
+
+        require(amount <= maxDelegateAmount, "amount too large");
 
         PublicKeyType ty = PublicKeyType.Ed25519;
 
@@ -577,16 +601,22 @@ contract Staking is
     }
 
     // Delegate assets
-    function adminDelegate(address validator, address delegator)
-        external
-        payable
-    {
+    function adminDelegate(
+        address validator,
+        address delegator
+    ) external payable {
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");
 
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
+
+        require(amount >= delegateMininum, "amount is too small");
+
+        uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
+
+        require(amount <= maxDelegateAmount, "amount too large");
 
         _addDelegator(delegator, validator, msg.value);
 
@@ -649,12 +679,11 @@ contract Staking is
 
     // -------- utils function
 
-    function dropAmount(uint256 amount, uint8 decimal)
-        public
-        pure
-        returns (uint256)
-    {
-        uint256 pow = 10**decimal;
+    function dropAmount(
+        uint256 amount,
+        uint8 decimal
+    ) public pure returns (uint256) {
+        uint256 pow = 10 ** decimal;
         uint256 res = amount / pow;
         return res;
     }

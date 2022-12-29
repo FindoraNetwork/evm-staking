@@ -23,24 +23,28 @@ async function get_address_from_system(system_addr) {
     const reward = await system.rewardAddress();
     const power = await system.powerAddress();
 
+    const vaidators = await system.getValidatorsList();
+
     return {
         staking,
         reward,
         power,
+        vaidators,
     }
 }
 
 async function get_address() {
     let proxy = await get_proxy_address();
     let system = await get_system_address(proxy);
-    let { staking, reward, power } = await get_address_from_system(system);
+    let { staking, reward, power, vaidators } = await get_address_from_system(system);
 
     return {
         proxy,
         system,
         staking,
         reward,
-        power
+        power,
+        vaidators
     }
 }
 

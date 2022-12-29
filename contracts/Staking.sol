@@ -578,11 +578,11 @@ contract Staking is
 
         require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
-        require(amount >= stakeMininum, "amount too small");
+        // require(amount >= stakeMininum, "amount too small");
 
-        uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
+        // uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
 
-        require(amount <= maxDelegateAmount, "amount too large");
+        // require(amount <= maxDelegateAmount, "amount too large");
 
         PublicKeyType ty = PublicKeyType.Ed25519;
 
@@ -614,11 +614,11 @@ contract Staking is
 
         require(amount >= delegateMininum, "amount is too small");
 
-        uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
+        // uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
 
-        require(amount <= maxDelegateAmount, "amount too large");
+        // require(amount <= maxDelegateAmount, "amount too large");
 
-        _addDelegator(delegator, validator, msg.value);
+        _addDelegator(delegator, validator, amount);
 
         emit Delegation(validator, delegator, amount);
     }

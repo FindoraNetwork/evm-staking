@@ -9,7 +9,7 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
     const Power = await ethers.getContractFactory("Power");
 
-    const power = await Power.attach("0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e");
+    const power = await Power.attach("0xBeeBd2B2E9C29E416bF5d774526644f7C854cE01");
 
     let result = await power.getValidatorsList();
 

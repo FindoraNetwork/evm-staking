@@ -15,7 +15,7 @@ contract System is Ownable, IBase {
     address public proxyAddress;
 
     // Staking contract address
-    address public stakingAddress;
+    address payable public stakingAddress;
 
     // Reword contract address
     address public rewardAddress;
@@ -47,7 +47,7 @@ contract System is Ownable, IBase {
         proxyAddress = addr;
     }
 
-    function adminSetStakingAddress(address addr) public onlyOwner {
+    function adminSetStakingAddress(address payable addr) public onlyOwner {
         stakingAddress = addr;
     }
 
@@ -153,7 +153,8 @@ contract System is Ownable, IBase {
         address delegator
     ) external payable onlySystem {
         System system = System(__self);
-        return system._adminDelegate(validator, delegator);
+
+        return system._adminDelegate{value: msg.value}(validator, delegator);
     }
 
     function _adminDelegate(
@@ -162,7 +163,7 @@ contract System is Ownable, IBase {
     ) external payable {
         if (stakingAddress != address(0)) {
             IStaking staking = IStaking(stakingAddress);
-            staking.adminDelegate(validator, delegator);
+            staking.adminDelegate{value: msg.value}(validator, delegator);
         }
     }
 

@@ -578,7 +578,7 @@ contract Staking is
 
         require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
-        // require(amount >= stakeMininum, "amount too small");
+        require(amount >= stakeMininum, "amount too small");
 
         // uint256 maxDelegateAmount = maxDelegationAmountBasedOnTotalAmount();
 
@@ -597,7 +597,7 @@ contract Staking is
 
         _addDelegator(staker, validator, amount);
 
-        emit Stake(validator, public_key, ty, staker, msg.value, memo, rate);
+        emit Stake(validator, public_key, ty, staker, amount, memo, rate);
     }
 
     // Delegate assets

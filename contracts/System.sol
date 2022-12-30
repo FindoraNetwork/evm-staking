@@ -148,6 +148,43 @@ contract System is Ownable, IBase {
         }
     }
 
+    function adminStake(
+        address validator,
+        bytes calldata public_key,
+        address staker,
+        string calldata memo,
+        uint256 rate
+    ) external payable onlySystem {
+        System system = System(__self);
+        return
+            system._adminStake{value: msg.value}(
+                validator,
+                public_key,
+                staker,
+                memo,
+                rate
+            );
+    }
+
+    function _adminStake(
+        address validator,
+        bytes calldata public_key,
+        address staker,
+        string calldata memo,
+        uint256 rate
+    ) external payable {
+        if (stakingAddress != address(0)) {
+            IStaking staking = IStaking(stakingAddress);
+            staking.adminStake{value: msg.value}(
+                validator,
+                public_key,
+                staker,
+                memo,
+                rate
+            );
+        }
+    }
+
     function adminDelegate(
         address validator,
         address delegator

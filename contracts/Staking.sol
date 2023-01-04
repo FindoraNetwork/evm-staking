@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./KeyMapping.sol";
+import "./AddressMapping.sol";
 
 contract Staking is
     Initializable,
@@ -28,7 +28,7 @@ contract Staking is
 
     bytes32 public constant SYSTEM_ROLE = keccak256("SYSTEM_ROLE");
     bytes32 public constant POWER_ROLE = keccak256("POWER_ROLE");
-    uint256 public constant FRA_UNITS = 10**6;
+    uint256 public constant FRA_UNITS = 10 ** 6;
 
     /// --- End contract config for staking ---
 
@@ -37,68 +37,61 @@ contract Staking is
     // Mininum staking value; Default: 10000 FRA
     uint256 public stakeMininum;
 
-    function adminSetStakeMinimum(uint256 stakeMininum_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetStakeMinimum(
+        uint256 stakeMininum_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         stakeMininum = stakeMininum_;
     }
 
     // Mininum delegate value; Default 1 unit
     uint256 public delegateMininum;
 
-    function adminSetDelegateMinimum(uint256 delegateMininum_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetDelegateMinimum(
+        uint256 delegateMininum_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegateMininum = delegateMininum_;
     }
 
     // rate of power. decimal is 6
     uint256 public powerRateMaximum;
 
-    function adminSetPowerRateMaximum(uint256 powerRateMaximum_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetPowerRateMaximum(
+        uint256 powerRateMaximum_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         powerRateMaximum = powerRateMaximum_;
     }
 
     // blocktime; Default 16.
     uint256 public blocktime;
 
-    function adminSetBlocktime(uint256 blocktime_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetBlocktime(
+        uint256 blocktime_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         blocktime = blocktime_;
     }
 
     // unbound block count; Default 21 day. (21 * 24 * 60 * 60 / 16)
     uint256 public unboundBlock;
 
-    function adminUnboundBlock(uint256 unboundBlock_)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminUnboundBlock(
+        uint256 unboundBlock_
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         unboundBlock = unboundBlock_;
     }
 
     address addressMappingAddress;
 
-    function adminSetAddressMappingAddress(address addr)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetAddressMappingAddress(
+        address addr
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         addressMappingAddress = addr;
     }
 
     address prismAddress;
 
-    function adminSetPrismAddress(address addr)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminSetPrismAddress(
+        address addr
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         prismAddress = addr;
     }
 
@@ -151,19 +144,17 @@ contract Staking is
 
     mapping(address => Delegator) public delegators;
 
-    function delegatorsBoundAmount(address delegator, address validator)
-        public
-        view
-        returns (uint256)
-    {
+    function delegatorsBoundAmount(
+        address delegator,
+        address validator
+    ) public view returns (uint256) {
         return delegators[delegator].boundAmount[validator];
     }
 
-    function delegatorsUnboundAmount(address delegator, address validator)
-        public
-        view
-        returns (uint256)
-    {
+    function delegatorsUnboundAmount(
+        address delegator,
+        address validator
+    ) public view returns (uint256) {
         return delegators[delegator].unboundAmount[validator];
     }
 
@@ -240,51 +231,43 @@ contract Staking is
         totalDelegationAmount = totalDelegationAmount.sub(amount);
     }
 
-    function delegatorOfValidatorLength(address delegator)
-        public
-        view
-        returns (uint256)
-    {
+    function delegatorOfValidatorLength(
+        address delegator
+    ) public view returns (uint256) {
         return delegatorOfValidator[delegator].length();
     }
 
-    function delegatorOfValidatorAt(address delegator, uint256 idx)
-        public
-        view
-        returns (address)
-    {
+    function delegatorOfValidatorAt(
+        address delegator,
+        uint256 idx
+    ) public view returns (address) {
         return delegatorOfValidator[delegator].at(idx);
     }
 
-    function delegatorOfValidatorContains(address delegator, address value)
-        public
-        view
-        returns (bool)
-    {
+    function delegatorOfValidatorContains(
+        address delegator,
+        address value
+    ) public view returns (bool) {
         return delegatorOfValidator[delegator].contains(value);
     }
 
-    function validatorOfDelegatorLength(address validator)
-        public
-        view
-        returns (uint256)
-    {
+    function validatorOfDelegatorLength(
+        address validator
+    ) public view returns (uint256) {
         return validatorOfDelegator[validator].length();
     }
 
-    function validatorOfDelegatorAt(address validator, uint256 idx)
-        public
-        view
-        returns (address)
-    {
+    function validatorOfDelegatorAt(
+        address validator,
+        uint256 idx
+    ) public view returns (address) {
         return validatorOfDelegator[validator].at(idx);
     }
 
-    function validatorOfDelegatorContains(address validator, address value)
-        public
-        view
-        returns (bool)
-    {
+    function validatorOfDelegatorContains(
+        address validator,
+        address value
+    ) public view returns (bool) {
         return validatorOfDelegator[validator].contains(value);
     }
 
@@ -376,12 +359,9 @@ contract Staking is
         string calldata memo,
         uint256 rate
     ) external payable override {
-        // Check whether the validator was staked
-        require(validators[validator].staker == address(0), "already staked");
-
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
         require(amount >= stakeMininum, "amount too small");
 
@@ -389,29 +369,7 @@ contract Staking is
 
         require(amount <= maxDelegateAmount, "amount too large");
 
-        PublicKeyType ty = PublicKeyType.Ed25519;
-
-        Validator storage v = validators[validator];
-        v.public_key = public_key;
-        v.memo = memo;
-        v.rate = rate;
-        v.staker = msg.sender;
-        v.beginBlock = block.number;
-        v.ty = ty;
-
-        allValidators.add(validator);
-
-        _addDelegator(msg.sender, validator, amount);
-
-        emit Stake(
-            validator,
-            public_key,
-            ty,
-            msg.sender,
-            msg.value,
-            memo,
-            rate
-        );
+        _stake(validator, public_key, msg.sender, memo, rate, amount);
     }
 
     // Delegate assets
@@ -421,7 +379,7 @@ contract Staking is
 
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
         require(amount >= delegateMininum, "amount is too small");
 
@@ -479,6 +437,17 @@ contract Staking is
         validators[validator].rate = rate;
     }
 
+    // platform调用的Update validator
+    // 该操作只能有 system来操作
+    function systemUpdateValidator(
+        address validator,
+        string calldata memo,
+        uint256 rate
+    ) public onlyRole(SYSTEM_ROLE){
+        validators[validator].memo = memo;
+        validators[validator].rate = rate;
+    }
+
     // Return unDelegate assets
     function trigger() public override onlyRole(SYSTEM_ROLE) {
         uint256 blockNo = block.number;
@@ -520,29 +489,13 @@ contract Staking is
         string calldata memo,
         uint256 rate
     ) external payable onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Check whether the validator was staked
-        require(validators[validator].staker == address(0), "already staked");
-
         uint256 amount = dropAmount(msg.value, 12);
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
-
-        PublicKeyType ty = PublicKeyType.Ed25519;
-
-        Validator storage v = validators[validator];
-        v.public_key = public_key;
-        v.memo = memo;
-        v.rate = rate;
-        v.staker = staker;
-        v.ty = ty;
-
-        allValidators.add(validator);
-
-        _addDelegator(staker, validator, amount);
-
-        emit Stake(validator, public_key, ty, staker, msg.value, memo, rate);
+        _stake(validator, public_key, staker, memo, rate, amount);
     }
 
+    //this function is called from platform, the staker_pk is the Xfr public key.
     function systemStake(
         address validator,
         bytes calldata public_key,
@@ -551,12 +504,25 @@ contract Staking is
         string calldata memo,
         uint256 rate
     ) external payable onlyRole(SYSTEM_ROLE) {
-        // Check whether the validator was staked
-        require(validators[validator].staker == address(0), "already staked");
 
         uint256 amount = dropAmount(msg.value, 12);
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        _stake(validator, public_key, staker, memo, rate, amount);
+        AddressMapping am = AddressMapping(addressMappingAddress);
+        am.setMap(staker, staker_pk);
+    }
+
+    function _stake(
+        address validator,
+        bytes calldata public_key,
+        address staker,
+        string calldata memo,
+        uint256 rate,
+        uint256 amount
+    ) private {
+        // Check whether the validator was staked
+        require(validators[validator].staker == address(0), "already staked");
 
         PublicKeyType ty = PublicKeyType.Ed25519;
 
@@ -571,26 +537,26 @@ contract Staking is
 
         _addDelegator(staker, validator, amount);
 
-        AddressMapping am = AddressMapping(addressMappingAddress);
-        am.setMap(staker, staker_pk);
-
-        emit Stake(validator, public_key, ty, staker, msg.value, memo, rate);
+        emit Stake(validator, public_key, ty, staker, amount, memo, rate);
     }
 
     // Delegate assets
-    function systemDelegate(address validator, address delegator)
-        external
-        payable
-        onlyRole(SYSTEM_ROLE)
-    {
+    function systemDelegate(
+        address validator,
+        address delegator,
+        bytes calldata delegator_pk
+    ) external payable onlyRole(SYSTEM_ROLE) {
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");
 
         uint256 amount = dropAmount(msg.value, 12);
 
-        require(amount * (10**12) == msg.value, "lower 12 must be 0.");
+        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
 
         _addDelegator(delegator, validator, msg.value);
+
+        AddressMapping am = AddressMapping(addressMappingAddress);
+        am.setMap(delegator, delegator_pk);
 
         emit Delegation(validator, delegator, amount);
     }
@@ -684,12 +650,11 @@ contract Staking is
 
     // -------- utils function
 
-    function dropAmount(uint256 amount, uint8 decimal)
-        public
-        pure
-        returns (uint256)
-    {
-        uint256 pow = 10**decimal;
+    function dropAmount(
+        uint256 amount,
+        uint8 decimal
+    ) public pure returns (uint256) {
+        uint256 pow = 10 ** decimal;
         uint256 res = amount / pow;
         return res;
     }

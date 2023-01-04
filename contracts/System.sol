@@ -134,7 +134,6 @@ contract System is Ownable, IBase {
         uint256 rate
     ) external payable onlySystem {
         System system = System(__self);
-
         return
             system._stake{value: msg.value}(
                 validator,
@@ -168,31 +167,70 @@ contract System is Ownable, IBase {
         }
     }
 
-    function delegate(address validator, address delegator) external payable onlySystem {
+    function delegate(
+        address validator,
+        address delegator,
+        bytes calldata delegator_pk
+    ) external payable onlySystem {
         System system = System(__self);
-
-        system._delegate{value: msg.value}(validator, delegator);
+        system._delegate{value: msg.value}(validator, delegator, delegator_pk);
     }
 
-    function _delegate(address validator, address delegator) external payable onlyProxy {
+    function _delegate(
+        address validator,
+        address delegator,
+        bytes calldata delegator_pk
+    ) external payable onlyProxy {
         if (stakingAddress != address(0)) {
             // Return unDelegate assets
             IStaking staking = IStaking(stakingAddress);
-            staking.systemDelegate{value: msg.value}(validator, delegator);
+            staking.systemDelegate{value: msg.value}(
+                validator,
+                delegator,
+                delegator_pk
+            );
         }
     }
 
-    function undelegate(address validator, address delegator, uint256 amount) external onlySystem {
+    function undelegate(
+        address validator,
+        address delegator,
+        uint256 amount
+    ) external onlySystem {
         System system = System(__self);
-
         system._undelegate(validator, delegator, amount);
     }
 
-    function _undelegate(address validator, address delegator, uint256 amount) external onlyProxy {
+    function _undelegate(
+        address validator,
+        address delegator,
+        uint256 amount
+    ) external onlyProxy {
         if (stakingAddress != address(0)) {
             // Return unDelegate assets
             IStaking staking = IStaking(stakingAddress);
             staking.systemUndelegate(validator, delegator, amount);
+        }
+    }
+
+    function updateValidator(
+        address validator,
+        string calldata memo,
+        uint256 rate
+    ) external onlySystem {
+        System system = System(__self);
+        system._updateValidator(validator, memo, rate);
+    }
+
+    function _updateValidator(
+        address validator,
+        string calldata memo,
+        uint256 rate
+    ) external onlyProxy {
+        if (stakingAddress != address(0)) {
+            // Return unDelegate assets
+            IStaking staking = IStaking(stakingAddress);
+            staking.systemUpdateValidator(validator, memo, rate);
         }
     }
 

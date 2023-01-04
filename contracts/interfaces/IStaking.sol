@@ -30,13 +30,21 @@ interface IStaking {
         uint256 rate
     ) external payable;
 
-    function systemDelegate(address validator, address delegator)
-        external
-        payable;
+    function systemDelegate(
+        address validator,
+        address delegator,
+        bytes calldata delegator_pk
+    ) external payable;
 
     function systemUndelegate(
         address validator,
         address delegator,
         uint256 amount
+    ) external;
+
+    function systemUpdateValidator(
+        address validator,
+        string calldata memo,
+        uint256 rate
     ) external;
 }

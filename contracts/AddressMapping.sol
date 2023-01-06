@@ -13,7 +13,7 @@ contract AddressMapping is Initializable, AccessControlEnumerableUpgradeable {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function adminSetStaking(address addr) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminSetStakingAddress(address addr) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _setupRole(WRITABLE_ROLE, addr);
     }
 

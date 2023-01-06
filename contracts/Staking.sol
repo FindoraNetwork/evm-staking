@@ -4,13 +4,12 @@ pragma solidity ^0.8.9;
 import "./interfaces/IStaking.sol";
 import "./interfaces/IBase.sol";
 import "./interfaces/IPrismXX.sol";
+import "./AddressMapping.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
-import "./AddressMapping.sol";
 
 contract Staking is
     Initializable,
@@ -359,9 +358,7 @@ contract Staking is
         string calldata memo,
         uint256 rate
     ) external payable override {
-        uint256 amount = dropAmount(msg.value, 12);
-
-        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
+        uint256 amount = dropAmount12(msg.value);
 
         require(amount >= stakeMininum, "amount too small");
 
@@ -377,9 +374,7 @@ contract Staking is
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");
 
-        uint256 amount = dropAmount(msg.value, 12);
-
-        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
+        uint256 amount = dropAmount12(msg.value);
 
         require(amount >= delegateMininum, "amount is too small");
 
@@ -443,7 +438,7 @@ contract Staking is
         address validator,
         string calldata memo,
         uint256 rate
-    ) public onlyRole(SYSTEM_ROLE){
+    ) public onlyRole(SYSTEM_ROLE) {
         validators[validator].memo = memo;
         validators[validator].rate = rate;
     }
@@ -489,9 +484,7 @@ contract Staking is
         string calldata memo,
         uint256 rate
     ) external payable onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 amount = dropAmount(msg.value, 12);
-        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
-
+        uint256 amount = dropAmount12(msg.value);
         _stake(validator, public_key, staker, memo, rate, amount);
     }
 
@@ -504,10 +497,7 @@ contract Staking is
         string calldata memo,
         uint256 rate
     ) external payable onlyRole(SYSTEM_ROLE) {
-
-        uint256 amount = dropAmount(msg.value, 12);
-        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
-
+        uint256 amount = dropAmount12(msg.value);
         _stake(validator, public_key, staker, memo, rate, amount);
         AddressMapping am = AddressMapping(addressMappingAddress);
         am.setMap(staker, staker_pk);
@@ -549,11 +539,9 @@ contract Staking is
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");
 
-        uint256 amount = dropAmount(msg.value, 12);
+        uint256 amount = dropAmount12(msg.value);
 
-        require(amount * (10 ** 12) == msg.value, "lower 12 must be 0.");
-
-        _addDelegator(delegator, validator, msg.value);
+        _addDelegator(delegator, validator, amount);
 
         AddressMapping am = AddressMapping(addressMappingAddress);
         am.setMap(delegator, delegator_pk);
@@ -650,12 +638,10 @@ contract Staking is
 
     // -------- utils function
 
-    function dropAmount(
-        uint256 amount,
-        uint8 decimal
-    ) public pure returns (uint256) {
-        uint256 pow = 10 ** decimal;
+    function dropAmount12(uint256 amount) public pure returns (uint256) {
+        uint256 pow = 10 ** 12;
         uint256 res = amount / pow;
+        require(res * (10 ** 12) == amount, "lower 12 must be 0.");
         return res;
     }
 }

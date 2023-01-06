@@ -21,10 +21,20 @@ async function redeploySystem(proxy_addr) {
     return system.address;
 }
 
-async function deployStaking(system) {
+async function deployAddressMapping() {
+    const AddressMapping = await ethers.getContractFactory("AddressMapping");
+    const addressMapping = await upgrades.deployProxy(AddressMapping, []);
+
+    await addressMapping.deployed();
+
+    console.log("AddressMapping address:", addressMapping.address);
+    return addressMapping.address
+}
+
+async function deployStaking(system, addressMapping, prism) {
     const Staking = await ethers.getContractFactory("Staking");
 
-    const staking = await upgrades.deployProxy(Staking, [system]);
+    const staking = await upgrades.deployProxy(Staking, [system, addressMapping, prism]);
 
     await staking.deployed();
 
@@ -67,8 +77,15 @@ async function main() {
 
     const system = await System.attach(system_addr);
 
-    const staking_addr = await deployStaking(system_addr);
+    const address_mapping_addr = await deployAddressMapping();
+
+    const staking_addr = await deployStaking(system_addr, address_mapping_addr, "0x5f9552fEd754F20B636C996DaDB32806554Bb995");
     await system.adminSetStakingAddress(staking_addr);
+
+    const AddressMapping = await ethers.getContractFactory("AddressMapping");
+    const address_mapping = AddressMapping.attach(address_mapping_addr);
+
+    await address_mapping.adminSetStakingAddress(staking_addr);
 
     const power_addr = await deployPower(staking_addr, 5, 40);
     await system.adminSetPowerAddress(power_addr);

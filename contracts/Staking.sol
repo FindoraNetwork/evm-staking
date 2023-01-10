@@ -388,7 +388,8 @@ contract Staking is
     }
 
     // UnDelegate assets
-    function undelegate(address validator, uint256 amount) external override {
+    function undelegate(address validator, uint256 _amount) external override {
+        uint256 amount = dropAmount12(_amount);
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");
 
@@ -552,8 +553,9 @@ contract Staking is
     function systemUndelegate(
         address validator,
         address delegator,
-        uint256 amount
+        uint256 _amount
     ) external onlyRole(SYSTEM_ROLE) {
+        uint256 amount = dropAmount12(_amount);
         Validator storage v = validators[validator];
         require(v.staker != address(0), "invalid validator");
 

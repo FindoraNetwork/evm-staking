@@ -13,7 +13,7 @@ async function main() {
 
     const sa = "0x72488bAa718F52B76118C79168E55c209056A2E6";
 
-    let validatos = await axios.get("https://dev-qa04.dev.findora.org:26657/validators");
+    let validatos = await axios.get("http://localhost:26657/validators");
 
     let vs = validatos.data.result.validators;
 
@@ -36,6 +36,8 @@ async function main() {
 
         console.log();
     }
+
+    await staking.adminUnboundBlock(4);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
